@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v21-movement-polish",
+  version: "v22-movement-fix",
   worldWidth: 3300,
   gravityY: 1220,
   playerSpeed: 260,
