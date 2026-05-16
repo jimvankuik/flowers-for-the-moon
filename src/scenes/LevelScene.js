@@ -9,16 +9,21 @@ class LevelScene extends Phaser.Scene {
   }
 
   create() {
-    var settings = window.FTTM.GameSettings;
-    var level = window.FTTM.Level1;
+    this.screenW = this.scale.width;
+    this.screenH = this.scale.height;
+    this.safeTop = 18;
+    this.safeBottom = this.screenH < 650 ? 78 : 110;
+    this.groundY = this.screenH - this.safeBottom;
+    if (this.groundY < 360) this.groundY = this.screenH - 60;
 
-    this.physics.world.setBounds(0, 0, settings.worldWidth, settings.baseHeight + 260);
+    var settings = window.FTTM.GameSettings;
+    this.physics.world.setBounds(0, 0, settings.worldWidth, this.screenH + 240);
 
     this.createBackground(settings);
-    this.createPlatforms(level);
+    this.createPlatforms(settings);
     this.createPlayer();
-    this.createFlowers(level);
-    this.createMoonBoy(level);
+    this.createFlowers();
+    this.createMoonBoy(settings);
     this.createHud();
     this.createTouchControls();
 
@@ -26,42 +31,61 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.flowers, this.collectFlower, null, this);
     this.physics.add.overlap(this.player, this.finishZone, this.tryFinishLevel, null, this);
 
-    this.cameras.main.setBounds(0, 0, settings.worldWidth, settings.baseHeight);
+    this.cameras.main.setBounds(0, 0, settings.worldWidth, this.screenH);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setDeadzone(160, 90);
+    this.cameras.main.setDeadzone(Math.min(180, this.screenW * 0.28), 90);
+
+    this.scale.on("resize", this.handleResize, this);
+  }
+
+  handleResize() {
+    if (!this.finished) {
+      this.scene.restart();
+    }
   }
 
   createBackground(settings) {
-    this.add.rectangle(settings.worldWidth / 2, 270, settings.worldWidth, 540, 0x122451);
+    this.add.rectangle(settings.worldWidth / 2, this.screenH / 2, settings.worldWidth, this.screenH, 0x122451);
 
-    for (var i = 0; i < 110; i++) {
+    for (var i = 0; i < 130; i++) {
       var x = Phaser.Math.Between(0, settings.worldWidth);
-      var y = Phaser.Math.Between(22, 430);
+      var y = Phaser.Math.Between(20, Math.max(260, this.groundY - 90));
       var size = Phaser.Math.FloatBetween(1, 2.7);
-      var star = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.28, 0.85));
+      var star = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.28, 0.82));
       star.setScrollFactor(0.25);
     }
 
     for (var c = 0; c < 8; c++) {
       var cloud = this.add.ellipse(
         Phaser.Math.Between(120, settings.worldWidth - 120),
-        Phaser.Math.Between(80, 260),
+        Phaser.Math.Between(80, Math.max(150, this.groundY - 220)),
         Phaser.Math.Between(110, 210),
         Phaser.Math.Between(22, 45),
         0xffffff,
-        0.06
+        0.055
       );
       cloud.setScrollFactor(0.18);
     }
 
-    this.add.rectangle(settings.worldWidth / 2, 535, settings.worldWidth, 90, 0x070d2b);
+    this.add.rectangle(settings.worldWidth / 2, this.groundY + 62, settings.worldWidth, 125, 0x070d2b);
   }
 
-  createPlatforms(level) {
+  createPlatforms(settings) {
     this.platforms = this.physics.add.staticGroup();
 
-    for (var i = 0; i < level.platforms.length; i++) {
-      var p = level.platforms[i];
+    var gy = this.groundY;
+    var platforms = [
+      { x: 0, y: gy, w: 560, h: 40 },
+      { x: 720, y: gy - 75, w: 300, h: 34 },
+      { x: 1120, y: gy - 140, w: 300, h: 34 },
+      { x: 1520, y: gy - 85, w: 330, h: 34 },
+      { x: 2050, y: gy, w: 850, h: 40 }
+    ];
+
+    this.platformData = platforms;
+
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
       var block = this.add.rectangle(p.x + p.w / 2, p.y + p.h / 2, p.w, p.h, 0x5d8f61);
       block.setStrokeStyle(4, 0xa5d875);
       this.physics.add.existing(block, true);
@@ -73,7 +97,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.add.container(120, 430);
+    this.player = this.add.container(120, this.groundY - 70);
 
     var shadow = this.add.ellipse(0, 64, 48, 12, 0x000000, 0.18);
     var hairBack = this.add.ellipse(-8, -18, 32, 48, 0xffd94c);
@@ -90,12 +114,21 @@ class LevelScene extends Phaser.Scene {
     this.player.body.setCollideWorldBounds(true);
   }
 
-  createFlowers(level) {
+  createFlowers() {
     this.flowers = this.physics.add.staticGroup();
-    this.totalFlowers = level.flowers.length;
 
-    for (var i = 0; i < level.flowers.length; i++) {
-      var f = level.flowers[i];
+    var flowers = [
+      { x: 245, y: this.groundY - 50 },
+      { x: 835, y: this.groundY - 125 },
+      { x: 1265, y: this.groundY - 190 },
+      { x: 1675, y: this.groundY - 135 },
+      { x: 2245, y: this.groundY - 50 }
+    ];
+
+    this.totalFlowers = flowers.length;
+
+    for (var i = 0; i < flowers.length; i++) {
+      var f = flowers[i];
       var flower = this.add.container(f.x, f.y);
       flower.add(this.add.rectangle(0, 25, 4, 45, 0x6bbb55));
 
@@ -113,17 +146,17 @@ class LevelScene extends Phaser.Scene {
     }
   }
 
-  createMoonBoy(level) {
-    var x = level.moonBoy.x;
-    var y = level.moonBoy.y;
+  createMoonBoy(settings) {
+    var x = settings.worldWidth - 330;
+    var y = Math.max(115, Math.min(175, this.groundY - 330));
 
     this.moonGroup = this.add.container(x, y);
-    var moonGlow = this.add.circle(0, 0, 98, 0xfff2b6, 0.16);
-    var moon = this.add.circle(0, 0, 64, 0xffedb0, 0.98);
-    moon.setStrokeStyle(4, 0xffffff, 0.7);
+    var moonGlow = this.add.circle(0, 0, 104, 0xfff2b6, 0.16);
+    var moon = this.add.circle(0, 0, 68, 0xffedb0, 0.98);
+    moon.setStrokeStyle(4, 0xffffff, 0.72);
     var crater1 = this.add.circle(-20, -16, 9, 0xdcc987, 0.35);
     var crater2 = this.add.circle(18, 12, 7, 0xdcc987, 0.3);
-    var crater3 = this.add.circle(6, -28, 5, 0xdcc987, 0.25);
+    var crater3 = this.add.circle(6, -30, 5, 0xdcc987, 0.25);
 
     var boy = this.add.container(12, 18);
     boy.add(this.add.circle(0, -28, 16, 0xffd8b5));
@@ -134,28 +167,29 @@ class LevelScene extends Phaser.Scene {
     boy.add(this.add.rectangle(12, 35, 8, 24, 0x8fbfff));
 
     this.moonGroup.add([moonGlow, moon, crater1, crater2, crater3, boy]);
-    this.moonGroup.setDepth(5);
+    this.moonGroup.setDepth(6);
 
-    this.finishZone = this.add.zone(level.finishZone.x, level.finishZone.y, level.finishZone.w, level.finishZone.h);
+    this.finishZone = this.add.zone(settings.worldWidth - 420, this.groundY - 45, 340, 170);
     this.physics.add.existing(this.finishZone, true);
 
-    this.add.text(x - 125, y + 92, "Breng hier de bloemen", {
+    var sign = this.add.text(settings.worldWidth - 555, this.groundY - 138, "Kijk omhoog naar de maan", {
       fontFamily: "Arial",
       fontSize: "17px",
       fontStyle: "bold",
       color: "#ffffff",
       stroke: "#0b1235",
       strokeThickness: 5
-    }).setDepth(8);
+    });
+    sign.setDepth(8);
   }
 
   createHud() {
     var bg = this.add.graphics();
     bg.fillStyle(0x071038, 0.48);
-    bg.fillRoundedRect(12, 14, 330, 58, 14);
+    bg.fillRoundedRect(12, 16, 330, 58, 14);
     bg.setScrollFactor(0);
 
-    this.hudText = this.add.text(26, 23, "Pluisbloemen: 0/" + this.totalFlowers, {
+    this.hudText = this.add.text(26, 24, "Pluisbloemen: 0/" + this.totalFlowers, {
       fontFamily: "Arial",
       fontSize: "24px",
       fontStyle: "bold",
@@ -163,7 +197,7 @@ class LevelScene extends Phaser.Scene {
     });
     this.hudText.setScrollFactor(0);
 
-    this.helpText = this.add.text(26, 51, "Verzamel bloemen voor je broer op de maan", {
+    this.helpText = this.add.text(26, 52, "Verzamel bloemen voor je broer op de maan", {
       fontFamily: "Arial",
       fontSize: "14px",
       color: "#ffffff",
@@ -171,7 +205,7 @@ class LevelScene extends Phaser.Scene {
     });
     this.helpText.setScrollFactor(0);
 
-    var versionText = this.add.text(14, 518, window.FTTM.GameSettings.version, {
+    var versionText = this.add.text(14, this.screenH - 24, window.FTTM.GameSettings.version, {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#ffffff",
@@ -182,16 +216,13 @@ class LevelScene extends Phaser.Scene {
   }
 
   createTouchControls() {
-    var bottom = 454;
-    var leftX = 76;
-    var rightX = 156;
-    var jumpX = 798;
-    var blowX = 888;
+    var y = this.screenH - 84;
+    if (this.screenH > 700) y = this.screenH - 118;
 
-    this.makeButton(leftX, bottom, "‹", "left", 43);
-    this.makeButton(rightX, bottom, "›", "right", 43);
-    this.makeButton(jumpX, bottom, "↑", "jump", 43);
-    this.makeButton(blowX, bottom, "✿", "blow", 43);
+    this.makeButton(72, y, "‹", "left", 42);
+    this.makeButton(152, y, "›", "right", 42);
+    this.makeButton(this.screenW - 152, y, "↑", "jump", 42);
+    this.makeButton(this.screenW - 72, y, "✿", "blow", 42);
   }
 
   makeButton(x, y, label, key, size) {
@@ -199,19 +230,22 @@ class LevelScene extends Phaser.Scene {
     group.setScrollFactor(0);
     group.setDepth(100);
 
-    var outer = this.add.circle(0, 0, size, 0xffffff, 0.10);
-    outer.setStrokeStyle(2, 0xffffff, 0.26);
-    var inner = this.add.circle(0, 0, size - 10, 0x86b7ff, 0.15);
-    inner.setStrokeStyle(1, 0xffffff, 0.28);
+    var shadow = this.add.circle(3, 5, size + 2, 0x000000, 0.18);
+    var outer = this.add.circle(0, 0, size, 0xffffff, 0.11);
+    outer.setStrokeStyle(2, 0xffffff, 0.28);
+    var inner = this.add.circle(0, 0, size - 10, 0x86b7ff, 0.18);
+    inner.setStrokeStyle(1, 0xffffff, 0.30);
+    var shine = this.add.ellipse(-10, -13, size * 0.9, size * 0.42, 0xffffff, 0.12);
+
     var text = this.add.text(0, -2, label, {
       fontFamily: "Arial",
-      fontSize: key === "blow" ? "27px" : "31px",
+      fontSize: key === "blow" ? "27px" : "32px",
       fontStyle: "bold",
       color: "#ffffff"
     });
     text.setOrigin(0.5);
 
-    group.add([outer, inner, text]);
+    group.add([shadow, outer, inner, shine, text]);
     group.setSize(size * 2, size * 2);
     group.setInteractive();
 
@@ -219,15 +253,15 @@ class LevelScene extends Phaser.Scene {
 
     group.on("pointerdown", function () {
       scene.controls[key] = true;
-      outer.setAlpha(0.24);
-      inner.setAlpha(0.35);
-      group.setScale(0.95);
+      outer.setAlpha(0.25);
+      inner.setAlpha(0.38);
+      group.setScale(0.94);
     });
 
     var up = function () {
       scene.controls[key] = false;
-      outer.setAlpha(0.10);
-      inner.setAlpha(0.15);
+      outer.setAlpha(0.11);
+      inner.setAlpha(0.18);
       group.setScale(1);
     };
 
@@ -267,10 +301,10 @@ class LevelScene extends Phaser.Scene {
     this.controls.jump = false;
     this.controls.blow = false;
 
-    this.cameras.main.pan(this.moonGroup.x - 230, 270, 600, "Sine.easeInOut");
+    this.cameras.main.pan(this.moonGroup.x - this.screenW * 0.35, this.screenH * 0.45, 650, "Sine.easeInOut");
 
     var scene = this;
-    this.time.delayedCall(260, function () {
+    this.time.delayedCall(300, function () {
       scene.playGiveFlowersAnimation();
     });
   }
@@ -299,7 +333,7 @@ class LevelScene extends Phaser.Scene {
         y: targetY + Phaser.Math.Between(-20, 18),
         scale: 0.75,
         duration: 850,
-        delay: i * 160,
+        delay: i * 170,
         ease: "Sine.easeInOut",
         onComplete: function (tween, targets) {
           var obj = targets[0];
@@ -314,21 +348,26 @@ class LevelScene extends Phaser.Scene {
       });
     }
 
-    this.time.delayedCall(1200, function () {
+    this.time.delayedCall(1250, function () {
       scene.showFinishMessage();
     });
   }
 
   showFinishMessage() {
+    var panelW = Math.min(720, this.screenW - 60);
+    var panelH = 170;
+    var panelX = (this.screenW - panelW) / 2;
+    var panelY = Math.max(84, this.screenH * 0.22);
+
     var panel = this.add.graphics();
     panel.setScrollFactor(0);
     panel.setDepth(200);
-    panel.fillStyle(0x071038, 0.82);
-    panel.fillRoundedRect(120, 135, 720, 170, 28);
+    panel.fillStyle(0x071038, 0.84);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 28);
     panel.lineStyle(3, 0xffffff, 0.22);
-    panel.strokeRoundedRect(120, 135, 720, 170, 28);
+    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 28);
 
-    var title = this.add.text(480, 177, "Goed gedaan, Amber! 🌙", {
+    var title = this.add.text(this.screenW / 2, panelY + 42, "Goed gedaan, Amber! 🌙", {
       fontFamily: "Arial",
       fontSize: "34px",
       fontStyle: "bold",
@@ -339,12 +378,12 @@ class LevelScene extends Phaser.Scene {
     title.setScrollFactor(0);
     title.setDepth(201);
 
-    var subtitle = this.add.text(480, 230, "Je gaf de pluisbloemen liefdevol aan je broer op de maan.", {
+    var subtitle = this.add.text(this.screenW / 2, panelY + 98, "Je gaf de pluisbloemen liefdevol aan je broer op de maan.", {
       fontFamily: "Arial",
       fontSize: "22px",
       color: "#ffffff",
       align: "center",
-      wordWrap: { width: 620 }
+      wordWrap: { width: panelW - 80 }
     });
     subtitle.setOrigin(0.5);
     subtitle.setScrollFactor(0);
@@ -397,8 +436,8 @@ class LevelScene extends Phaser.Scene {
       this.lastBlowTime = 0;
     }
 
-    if (this.player.y > 760) {
-      this.player.setPosition(120, 430);
+    if (this.player.y > this.screenH + 220) {
+      this.player.setPosition(120, this.groundY - 70);
       this.player.body.setVelocity(0, 0);
     }
   }
