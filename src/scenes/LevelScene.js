@@ -1,7 +1,7 @@
+
 class LevelScene extends Phaser.Scene {
   constructor() {
     super("LevelScene");
-    this.controls = { left:false, right:false, jump:false, blow:false };
     this.collected = 0;
     this.totalFlowers = 0;
     this.finished = false;
@@ -46,6 +46,7 @@ class LevelScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, settings.worldWidth, this.visibleH);
     this.cameras.main.setZoom(this.worldZoom);
+    this.cameras.main.scrollY = 0;
     this.updateCamera(true);
 
     this.scale.on("resize", () => {
@@ -55,19 +56,36 @@ class LevelScene extends Phaser.Scene {
 
   drawBackground(settings) {
     this.add.rectangle(settings.worldWidth / 2, this.visibleH / 2, settings.worldWidth, this.visibleH, 0x13285d);
+
     for (let i = 0; i < 155; i++) {
-      const star = this.add.circle(Phaser.Math.Between(0, settings.worldWidth), Phaser.Math.Between(12, Math.max(300, this.groundY - 110)), Phaser.Math.FloatBetween(1, 2.3), 0xffffff, Phaser.Math.FloatBetween(0.22, 0.78));
+      const star = this.add.circle(
+        Phaser.Math.Between(0, settings.worldWidth),
+        Phaser.Math.Between(12, Math.max(300, this.groundY - 110)),
+        Phaser.Math.FloatBetween(1, 2.3),
+        0xffffff,
+        Phaser.Math.FloatBetween(0.22, 0.78)
+      );
       star.setScrollFactor(0.25);
     }
+
     for (let i = 0; i < 8; i++) {
-      const cloud = this.add.ellipse(Phaser.Math.Between(130, settings.worldWidth - 150), Phaser.Math.Between(90, Math.max(170, this.groundY - 280)), Phaser.Math.Between(130, 250), Phaser.Math.Between(24, 50), 0xffffff, 0.05);
+      const cloud = this.add.ellipse(
+        Phaser.Math.Between(130, settings.worldWidth - 150),
+        Phaser.Math.Between(90, Math.max(170, this.groundY - 280)),
+        Phaser.Math.Between(130, 250),
+        Phaser.Math.Between(24, 50),
+        0xffffff,
+        0.05
+      );
       cloud.setScrollFactor(0.18);
     }
+
     this.add.rectangle(settings.worldWidth / 2, this.groundY + 75, settings.worldWidth, 150, 0x071038);
   }
 
   createPlatforms() {
     this.platforms = this.physics.add.staticGroup();
+
     const gy = this.groundY;
     const platforms = [
       {x:0, y:gy, w:700, h:42},
@@ -76,11 +94,13 @@ class LevelScene extends Phaser.Scene {
       {x:1850, y:gy-90, w:380, h:36},
       {x:2460, y:gy, w:840, h:42}
     ];
+
     platforms.forEach(p => {
       const block = this.add.rectangle(p.x + p.w/2, p.y + p.h/2, p.w, p.h, 0x5f9567);
       block.setStrokeStyle(4, 0xb6eb86);
       this.physics.add.existing(block, true);
       this.platforms.add(block);
+
       const glow = this.add.rectangle(p.x + p.w/2, p.y + 4, p.w, 7, 0xd9f89b, 0.45);
       glow.setDepth(2);
     });
@@ -110,17 +130,29 @@ class LevelScene extends Phaser.Scene {
 
   createFlowers() {
     this.flowers = this.physics.add.staticGroup();
-    const flowers = [[300, this.groundY - 52],[1010, this.groundY - 137],[1520, this.groundY - 202],[2040, this.groundY - 142],[2700, this.groundY - 52]];
+
+    const flowers = [
+      [300, this.groundY - 52],
+      [1010, this.groundY - 137],
+      [1520, this.groundY - 202],
+      [2040, this.groundY - 142],
+      [2700, this.groundY - 52]
+    ];
+
     this.totalFlowers = flowers.length;
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFlowers);
+
     flowers.forEach(d => {
       const f = this.add.container(d[0], d[1]);
       f.add(this.add.rectangle(0, 24, 4, 44, 0x67bf55));
+
       for (let i = 0; i < 8; i++) {
         const a = (Math.PI * 2 / 8) * i;
         f.add(this.add.circle(Math.cos(a) * 10, Math.sin(a) * 10, 7, 0xffffff));
       }
+
       f.add(this.add.circle(0, 0, 4, 0xfff0b4));
+
       this.physics.add.existing(f, true);
       f.body.setSize(44, 76);
       f.body.setOffset(-22, -20);
@@ -132,29 +164,37 @@ class LevelScene extends Phaser.Scene {
   createMoonGoal(settings) {
     const moonX = settings.worldWidth - 330;
     const moonY = Math.max(145, this.groundY - 430);
+
     this.moonGroup = this.add.container(moonX, moonY);
     this.moonGroup.setDepth(8);
+
     const glow = this.add.circle(0, 0, 110, 0xfff2b6, 0.16);
     const moon = this.add.circle(0, 0, 72, 0xffefaf);
     moon.setStrokeStyle(4, 0xffffff, 0.72);
     const crater1 = this.add.circle(-18, -12, 9, 0xdac88a, 0.3);
     const crater2 = this.add.circle(18, 15, 7, 0xdac88a, 0.25);
+
     const boy = this.add.container(10, 18);
     boy.add(this.add.circle(0, -28, 16, 0xffd8b5));
     boy.add(this.add.rectangle(0, 4, 30, 52, 0x92bfff));
     boy.add(this.add.circle(6, -30, 2.3, 0x1d2148));
     boy.add(this.add.rectangle(-8, -42, 20, 9, 0x6a4a32));
+
     this.moonGroup.add([glow, moon, crater1, crater2, boy]);
+
     this.goalZone = this.add.zone(settings.worldWidth - 440, this.groundY - 60, 360, 190);
     this.physics.add.existing(this.goalZone, true);
   }
 
   collectFlower(player, flower) {
     if (!flower || flower.getData("collected")) return;
+
     flower.setData("collected", true);
     this.collected++;
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(this.collected, this.totalFlowers);
+
     if (flower.body) flower.body.enable = false;
+
     this.tweens.add({
       targets: flower,
       y: flower.y - 36,
@@ -171,10 +211,13 @@ class LevelScene extends Phaser.Scene {
 
   startFinishSequence() {
     if (this.finishStarted || this.collected < this.totalFlowers) return;
+
     this.finishStarted = true;
     this.finished = true;
     this.player.body.setVelocity(0, 0);
+
     this.cameras.main.pan(this.moonGroup.x - this.visibleW * 0.33, this.visibleH * 0.42, 650, "Sine.easeInOut");
+
     this.time.delayedCall(420, () => this.playFlowerGiftAnimation());
   }
 
@@ -183,6 +226,7 @@ class LevelScene extends Phaser.Scene {
     const startY = this.player.y - 48;
     const targetX = this.moonGroup.x + 12;
     const targetY = this.moonGroup.y + 20;
+
     for (let i = 0; i < this.totalFlowers; i++) {
       const f = this.add.container(startX, startY);
       f.setDepth(30);
@@ -193,6 +237,7 @@ class LevelScene extends Phaser.Scene {
       f.add(this.add.circle(0, -6, 6, 0xffffff));
       f.add(this.add.circle(0, 6, 6, 0xffffff));
       f.add(this.add.circle(0, 0, 3, 0xfff0b4));
+
       this.tweens.add({
         targets: f,
         x: targetX + Phaser.Math.Between(-22, 20),
@@ -206,6 +251,7 @@ class LevelScene extends Phaser.Scene {
         }
       });
     }
+
     this.time.delayedCall(1300, () => {
       this.showHearts();
       if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
@@ -221,6 +267,7 @@ class LevelScene extends Phaser.Scene {
       });
       heart.setOrigin(0.5);
       heart.setDepth(35);
+
       this.tweens.add({
         targets: heart,
         x: heart.x + Phaser.Math.Between(-170, 170),
@@ -235,9 +282,11 @@ class LevelScene extends Phaser.Scene {
 
   createBlowEffect() {
     const dir = this.facing;
+
     for (let i = 0; i < 10; i++) {
       const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86);
       seed.setDepth(12);
+
       this.tweens.add({
         targets: seed,
         x: seed.x + dir * Phaser.Math.Between(60, 135),
@@ -282,11 +331,10 @@ class LevelScene extends Phaser.Scene {
   }
 
   playJumpFeedback() {
-    const sx = this.facing;
     this.tweens.killTweensOf(this.playerVisual);
     this.tweens.add({
       targets: this.playerVisual,
-      scaleX: sx * 0.94,
+      scaleX: 0.94,
       scaleY: 1.08,
       duration: 90,
       yoyo: true,
@@ -296,19 +344,18 @@ class LevelScene extends Phaser.Scene {
 
   playLandingFeedback() {
     this.landingTweenActive = true;
-    const sx = this.facing;
     this.tweens.killTweensOf(this.playerVisual);
     this.cameras.main.shake(85, 0.0025);
     this.tweens.add({
       targets: this.playerVisual,
-      scaleX: sx * 1.08,
+      scaleX: 1.08,
       scaleY: 0.90,
       y: 4,
       duration: 85,
       ease: "Sine.easeOut",
       yoyo: true,
       onComplete: () => {
-        this.playerVisual.scaleX = sx;
+        this.playerVisual.scaleX = 1;
         this.playerVisual.scaleY = 1;
         this.playerVisual.y = 0;
         this.landingTweenActive = false;
@@ -338,7 +385,7 @@ class LevelScene extends Phaser.Scene {
   update(time, delta) {
     if (this.finished) return;
 
-    const input = window.FTTM.InputState || this.controls;
+    const input = window.FTTM.InputState || {};
     const settings = window.FTTM.GameSettings;
     const onGround = this.player.body.blocked.down;
 
@@ -352,7 +399,7 @@ class LevelScene extends Phaser.Scene {
 
     if (Math.abs(this.currentSpeed) > 8) {
       this.facing = this.currentSpeed < 0 ? -1 : 1;
-      this.playerVisual.scaleX = this.facing;
+      this.player.scaleX = this.facing;
     }
 
     if (input.jump && onGround) {
