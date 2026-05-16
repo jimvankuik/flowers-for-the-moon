@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v13-responsive-polish",
+  version: "v14-stable-polish",
   baseWidth: 960,
   baseHeight: 540,
   worldWidth: 2800,

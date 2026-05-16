@@ -1,21 +1,21 @@
 (function () {
   function showError(message) {
-    document.body.innerHTML = '<div style="color:white;font-family:Arial;padding:24px;line-height:1.4"><h2>Flowers to the Moon start niet</h2><p>' + message + '</p></div>';
+    document.body.innerHTML = '<div style="color:white;font-family:Arial;padding:24px;line-height:1.4"><h2>Flowers to the Moon start niet</h2><p>' + message + '</p><p style="opacity:.75">Controleer of alle bestanden uit dezelfde zip zijn geüpload.</p></div>';
   }
 
   if (!window.Phaser) {
-    showError("Phaser is niet geladen. Controleer je internetverbinding of CDN.");
+    showError("Phaser is niet geladen.");
     return;
   }
 
-  if (!window.FTTM || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
+  if (!window.FTTM || !window.FTTM.GameSettings || !window.FTTM.Level1 || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
     showError("Gamebestanden zijn niet goed geladen.");
     return;
   }
 
-  const settings = window.FTTM.GameSettings;
+  var settings = window.FTTM.GameSettings;
 
-  const config = {
+  var config = {
     type: Phaser.AUTO,
     parent: "game",
     backgroundColor: "#071038",
