@@ -4,16 +4,87 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
   <title>Flowers to the Moon</title>
-  <link rel="stylesheet" href="./style.css?v=v16" />
+  <link rel="stylesheet" href="./style.css?v=v19" />
 </head>
 <body>
   <div id="game"></div>
 
+  <div id="game-ui" aria-hidden="true">
+    <div id="hud-panel">
+      <div id="flower-counter">Pluisbloemen: 0/5</div>
+      <div id="hud-subtitle">Verzamel bloemen voor je broer op de maan</div>
+    </div>
+
+    <div id="finish-panel" class="hidden">
+      <div id="finish-title">Goed gedaan, Amber! 🌙</div>
+      <div id="finish-text">Je gaf de pluisbloemen liefdevol aan je broer op de maan.</div>
+    </div>
+
+    <div id="version-label">v19-stable-ui</div>
+
+    <div id="touch-controls">
+      <div class="control-cluster left-cluster">
+        <button class="game-button small" data-control="left">‹</button>
+        <button class="game-button small" data-control="right">›</button>
+      </div>
+
+      <div class="control-cluster right-cluster">
+        <button class="game-button action jump" data-control="jump">↑</button>
+        <button class="game-button action flower" data-control="blow">✿</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.FTTM = window.FTTM || {};
+    window.FTTM.InputState = { left:false, right:false, jump:false, blow:false };
+    window.FTTM.setFlowerCounter = function(value, total) {
+      var el = document.getElementById("flower-counter");
+      if (el) el.textContent = "Pluisbloemen: " + value + "/" + total;
+    };
+    window.FTTM.showFinishPanel = function() {
+      var el = document.getElementById("finish-panel");
+      if (el) el.classList.remove("hidden");
+    };
+    window.FTTM.hideFinishPanel = function() {
+      var el = document.getElementById("finish-panel");
+      if (el) el.classList.add("hidden");
+    };
+
+    window.addEventListener("load", function () {
+      var activePointers = {};
+      document.querySelectorAll("[data-control]").forEach(function(button) {
+        var key = button.getAttribute("data-control");
+
+        button.addEventListener("pointerdown", function(e) {
+          e.preventDefault();
+          button.setPointerCapture(e.pointerId);
+          activePointers[e.pointerId] = key;
+          window.FTTM.InputState[key] = true;
+          button.classList.add("pressed");
+        });
+
+        function release(e) {
+          e.preventDefault();
+          if (activePointers[e.pointerId] === key) {
+            delete activePointers[e.pointerId];
+            window.FTTM.InputState[key] = false;
+            button.classList.remove("pressed");
+          }
+        }
+
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", release);
+      });
+    });
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  <script src="./src/config.js?v=v16"></script>
-  <script src="./src/levels/level1.js?v=v16"></script>
-  <script src="./src/scenes/BootScene.js?v=v16"></script>
-  <script src="./src/scenes/LevelScene.js?v=v16"></script>
-  <script src="./src/main.js?v=v16"></script>
+  <script src="./src/config.js?v=v19"></script>
+  <script src="./src/levels/level1.js?v=v19"></script>
+  <script src="./src/scenes/BootScene.js?v=v19"></script>
+  <script src="./src/scenes/LevelScene.js?v=v19"></script>
+  <script src="./src/main.js?v=v19"></script>
 </body>
 </html>
