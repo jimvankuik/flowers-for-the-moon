@@ -7,6 +7,7 @@ class LevelScene extends Phaser.Scene {
     this.totalFlowers = 0;
     this.finished = false;
     this.finishStarted = false;
+    this.lastBlowAt = 0;
   }
 
   create() {
@@ -41,8 +42,7 @@ class LevelScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, settings.worldWidth, this.visibleH);
     this.cameras.main.setZoom(this.worldZoom);
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setDeadzone(this.visibleW * 0.26, this.visibleH * 0.16);
+    this.updateCamera(true);
 
     this.scale.on("resize", () => {
       if (!this.finished) this.scene.restart();
@@ -51,36 +51,19 @@ class LevelScene extends Phaser.Scene {
 
   drawBackground(settings) {
     this.add.rectangle(settings.worldWidth / 2, this.visibleH / 2, settings.worldWidth, this.visibleH, 0x13285d);
-
     for (let i = 0; i < 155; i++) {
-      const star = this.add.circle(
-        Phaser.Math.Between(0, settings.worldWidth),
-        Phaser.Math.Between(12, Math.max(300, this.groundY - 110)),
-        Phaser.Math.FloatBetween(1, 2.3),
-        0xffffff,
-        Phaser.Math.FloatBetween(0.22, 0.78)
-      );
+      const star = this.add.circle(Phaser.Math.Between(0, settings.worldWidth), Phaser.Math.Between(12, Math.max(300, this.groundY - 110)), Phaser.Math.FloatBetween(1, 2.3), 0xffffff, Phaser.Math.FloatBetween(0.22, 0.78));
       star.setScrollFactor(0.25);
     }
-
     for (let i = 0; i < 8; i++) {
-      const cloud = this.add.ellipse(
-        Phaser.Math.Between(130, settings.worldWidth - 150),
-        Phaser.Math.Between(90, Math.max(170, this.groundY - 280)),
-        Phaser.Math.Between(130, 250),
-        Phaser.Math.Between(24, 50),
-        0xffffff,
-        0.05
-      );
+      const cloud = this.add.ellipse(Phaser.Math.Between(130, settings.worldWidth - 150), Phaser.Math.Between(90, Math.max(170, this.groundY - 280)), Phaser.Math.Between(130, 250), Phaser.Math.Between(24, 50), 0xffffff, 0.05);
       cloud.setScrollFactor(0.18);
     }
-
     this.add.rectangle(settings.worldWidth / 2, this.groundY + 75, settings.worldWidth, 150, 0x071038);
   }
 
   createPlatforms() {
     this.platforms = this.physics.add.staticGroup();
-
     const gy = this.groundY;
     const platforms = [
       {x:0, y:gy, w:700, h:42},
@@ -89,13 +72,11 @@ class LevelScene extends Phaser.Scene {
       {x:1850, y:gy-90, w:380, h:36},
       {x:2460, y:gy, w:840, h:42}
     ];
-
     platforms.forEach(p => {
       const block = this.add.rectangle(p.x + p.w/2, p.y + p.h/2, p.w, p.h, 0x5f9567);
       block.setStrokeStyle(4, 0xb6eb86);
       this.physics.add.existing(block, true);
       this.platforms.add(block);
-
       const glow = this.add.rectangle(p.x + p.w/2, p.y + 4, p.w, 7, 0xd9f89b, 0.45);
       glow.setDepth(2);
     });
@@ -103,14 +84,12 @@ class LevelScene extends Phaser.Scene {
 
   createPlayer() {
     this.player = this.add.container(125, this.groundY - 72);
-
     this.player.add(this.add.ellipse(0, 64, 48, 12, 0x000000, 0.18));
     this.player.add(this.add.ellipse(-8, -18, 32, 48, 0xffdd54));
     this.player.add(this.add.ellipse(0, 28, 42, 76, 0xffb7d5));
     this.player.add(this.add.circle(0, -20, 22, 0xffe0bd));
     this.player.add(this.add.triangle(-5, -40, -22, 0, 16, 0, -3, 24, 0xffdd54));
     this.player.add(this.add.circle(8, -22, 2.5, 0x1d2148));
-
     this.physics.add.existing(this.player);
     this.player.body.setSize(34, 82);
     this.player.body.setOffset(-17, -42);
@@ -119,29 +98,17 @@ class LevelScene extends Phaser.Scene {
 
   createFlowers() {
     this.flowers = this.physics.add.staticGroup();
-
-    const flowers = [
-      [300, this.groundY - 52],
-      [1010, this.groundY - 137],
-      [1520, this.groundY - 202],
-      [2040, this.groundY - 142],
-      [2700, this.groundY - 52]
-    ];
-
+    const flowers = [[300, this.groundY - 52],[1010, this.groundY - 137],[1520, this.groundY - 202],[2040, this.groundY - 142],[2700, this.groundY - 52]];
     this.totalFlowers = flowers.length;
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFlowers);
-
     flowers.forEach(d => {
       const f = this.add.container(d[0], d[1]);
       f.add(this.add.rectangle(0, 24, 4, 44, 0x67bf55));
-
       for (let i = 0; i < 8; i++) {
         const a = (Math.PI * 2 / 8) * i;
         f.add(this.add.circle(Math.cos(a) * 10, Math.sin(a) * 10, 7, 0xffffff));
       }
-
       f.add(this.add.circle(0, 0, 4, 0xfff0b4));
-
       this.physics.add.existing(f, true);
       f.body.setSize(44, 76);
       f.body.setOffset(-22, -20);
@@ -153,37 +120,29 @@ class LevelScene extends Phaser.Scene {
   createMoonGoal(settings) {
     const moonX = settings.worldWidth - 330;
     const moonY = Math.max(145, this.groundY - 430);
-
     this.moonGroup = this.add.container(moonX, moonY);
     this.moonGroup.setDepth(8);
-
     const glow = this.add.circle(0, 0, 110, 0xfff2b6, 0.16);
     const moon = this.add.circle(0, 0, 72, 0xffefaf);
     moon.setStrokeStyle(4, 0xffffff, 0.72);
     const crater1 = this.add.circle(-18, -12, 9, 0xdac88a, 0.3);
     const crater2 = this.add.circle(18, 15, 7, 0xdac88a, 0.25);
-
     const boy = this.add.container(10, 18);
     boy.add(this.add.circle(0, -28, 16, 0xffd8b5));
     boy.add(this.add.rectangle(0, 4, 30, 52, 0x92bfff));
     boy.add(this.add.circle(6, -30, 2.3, 0x1d2148));
     boy.add(this.add.rectangle(-8, -42, 20, 9, 0x6a4a32));
-
     this.moonGroup.add([glow, moon, crater1, crater2, boy]);
-
     this.goalZone = this.add.zone(settings.worldWidth - 440, this.groundY - 60, 360, 190);
     this.physics.add.existing(this.goalZone, true);
   }
 
   collectFlower(player, flower) {
     if (!flower || flower.getData("collected")) return;
-
     flower.setData("collected", true);
     this.collected++;
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(this.collected, this.totalFlowers);
-
     if (flower.body) flower.body.enable = false;
-
     this.tweens.add({
       targets: flower,
       y: flower.y - 36,
@@ -200,14 +159,10 @@ class LevelScene extends Phaser.Scene {
 
   startFinishSequence() {
     if (this.finishStarted || this.collected < this.totalFlowers) return;
-
     this.finishStarted = true;
     this.finished = true;
     this.player.body.setVelocity(0, 0);
-
-    this.cameras.main.stopFollow();
     this.cameras.main.pan(this.moonGroup.x - this.visibleW * 0.33, this.visibleH * 0.42, 650, "Sine.easeInOut");
-
     this.time.delayedCall(420, () => this.playFlowerGiftAnimation());
   }
 
@@ -216,7 +171,6 @@ class LevelScene extends Phaser.Scene {
     const startY = this.player.y - 48;
     const targetX = this.moonGroup.x + 12;
     const targetY = this.moonGroup.y + 20;
-
     for (let i = 0; i < this.totalFlowers; i++) {
       const f = this.add.container(startX, startY);
       f.setDepth(30);
@@ -227,7 +181,6 @@ class LevelScene extends Phaser.Scene {
       f.add(this.add.circle(0, -6, 6, 0xffffff));
       f.add(this.add.circle(0, 6, 6, 0xffffff));
       f.add(this.add.circle(0, 0, 3, 0xfff0b4));
-
       this.tweens.add({
         targets: f,
         x: targetX + Phaser.Math.Between(-22, 20),
@@ -237,17 +190,10 @@ class LevelScene extends Phaser.Scene {
         delay: i * 160,
         ease: "Sine.easeInOut",
         onComplete: () => {
-          this.tweens.add({
-            targets: f,
-            alpha: 0,
-            y: f.y - 16,
-            duration: 420,
-            onComplete: () => f.destroy()
-          });
+          this.tweens.add({ targets: f, alpha: 0, y: f.y - 16, duration: 420, onComplete: () => f.destroy() });
         }
       });
     }
-
     this.time.delayedCall(1300, () => {
       this.showHearts();
       if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
@@ -263,7 +209,6 @@ class LevelScene extends Phaser.Scene {
       });
       heart.setOrigin(0.5);
       heart.setDepth(35);
-
       this.tweens.add({
         targets: heart,
         x: heart.x + Phaser.Math.Between(-170, 170),
@@ -276,28 +221,56 @@ class LevelScene extends Phaser.Scene {
     }
   }
 
+  createBlowEffect() {
+    const dir = this.player.scaleX < 0 ? -1 : 1;
+    for (let i = 0; i < 10; i++) {
+      const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86);
+      seed.setDepth(12);
+      this.tweens.add({
+        targets: seed,
+        x: seed.x + dir * Phaser.Math.Between(60, 135),
+        y: seed.y + Phaser.Math.Between(-46, 18),
+        alpha: 0,
+        scale: Phaser.Math.FloatBetween(0.6, 1.35),
+        duration: Phaser.Math.Between(480, 760),
+        delay: i * 18,
+        ease: "Sine.easeOut",
+        onComplete: () => seed.destroy()
+      });
+    }
+  }
+
+  updateCamera(initial) {
+    const maxScroll = window.FTTM.GameSettings.worldWidth - this.visibleW;
+    const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * 0.34, 0, maxScroll);
+    if (initial) {
+      this.cameras.main.scrollX = desiredX;
+      this.cameras.main.scrollY = 0;
+      return;
+    }
+    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.075);
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, 0, 0.075);
+  }
+
   update() {
     if (this.finished) return;
-
     const input = window.FTTM.InputState || this.controls;
-
     let speed = 0;
     if (input.left) speed = -window.FTTM.GameSettings.playerSpeed;
     if (input.right) speed = window.FTTM.GameSettings.playerSpeed;
-
     this.player.body.setVelocityX(speed);
-
     if (speed < 0) this.player.setScale(-1, 1);
     if (speed > 0) this.player.setScale(1, 1);
-
-    if (input.jump && this.player.body.blocked.down) {
-      this.player.body.setVelocityY(window.FTTM.GameSettings.jumpVelocity);
+    if (input.jump && this.player.body.blocked.down) this.player.body.setVelocityY(window.FTTM.GameSettings.jumpVelocity);
+    if (input.blow && this.time.now - this.lastBlowAt > 360) {
+      this.lastBlowAt = this.time.now;
+      this.createBlowEffect();
     }
-
     if (this.player.y > this.groundY + 260) {
       this.player.setPosition(125, this.groundY - 72);
       this.player.body.setVelocity(0, 0);
     }
+    this.updateCamera(false);
   }
 }
 
