@@ -2,6 +2,7 @@ class LevelScene extends Phaser.Scene {
   constructor() {
     super("LevelScene");
     this.controls = { left: false, right: false, jump: false, blow: false };
+    this.activeButtonPointers = {};
     this.collected = 0;
     this.totalFlowers = 0;
     this.finished = false;
@@ -11,13 +12,20 @@ class LevelScene extends Phaser.Scene {
   create() {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
-    this.safeTop = 18;
-    this.safeBottom = this.screenH < 650 ? 78 : 110;
-    this.groundY = this.screenH - this.safeBottom;
-    if (this.groundY < 360) this.groundY = this.screenH - 60;
+    this.isPortrait = this.screenH >= this.screenW;
+
+    // More overview in portrait. UI stays readable because it is scaled back separately.
+    this.worldZoom = this.isPortrait ? 0.72 : 0.9;
+    if (this.screenW < 420) this.worldZoom = 0.68;
+
+    this.safeBottom = this.isPortrait ? 150 : 94;
+    this.groundY = this.screenH / this.worldZoom - this.safeBottom;
+    if (this.groundY < 390) this.groundY = 390;
 
     var settings = window.FTTM.GameSettings;
-    this.physics.world.setBounds(0, 0, settings.worldWidth, this.screenH + 240);
+    this.physics.world.setBounds(0, 0, settings.worldWidth, this.screenH / this.worldZoom + 300);
+
+    this.input.addPointer(5);
 
     this.createBackground(settings);
     this.createPlatforms(settings);
@@ -31,38 +39,50 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.flowers, this.collectFlower, null, this);
     this.physics.add.overlap(this.player, this.finishZone, this.tryFinishLevel, null, this);
 
-    this.cameras.main.setBounds(0, 0, settings.worldWidth, this.screenH);
+    this.cameras.main.setBounds(0, 0, settings.worldWidth, this.screenH / this.worldZoom);
+    this.cameras.main.setZoom(this.worldZoom);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setDeadzone(Math.min(180, this.screenW * 0.28), 90);
+    this.cameras.main.setDeadzone(this.screenW * 0.28 / this.worldZoom, 110 / this.worldZoom);
 
     this.scale.on("resize", this.handleResize, this);
   }
 
   handleResize() {
-    if (!this.finished) {
-      this.scene.restart();
-    }
+    if (!this.finished) this.scene.restart();
+  }
+
+  uiScale() {
+    return 1 / this.worldZoom;
+  }
+
+  fixedX(screenX) {
+    return screenX / this.worldZoom;
+  }
+
+  fixedY(screenY) {
+    return screenY / this.worldZoom;
   }
 
   createBackground(settings) {
-    this.add.rectangle(settings.worldWidth / 2, this.screenH / 2, settings.worldWidth, this.screenH, 0x122451);
+    var visibleH = this.screenH / this.worldZoom;
+    this.add.rectangle(settings.worldWidth / 2, visibleH / 2, settings.worldWidth, visibleH, 0x122451);
 
-    for (var i = 0; i < 130; i++) {
+    for (var i = 0; i < 140; i++) {
       var x = Phaser.Math.Between(0, settings.worldWidth);
-      var y = Phaser.Math.Between(20, Math.max(260, this.groundY - 90));
-      var size = Phaser.Math.FloatBetween(1, 2.7);
-      var star = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.28, 0.82));
+      var y = Phaser.Math.Between(20, Math.max(280, this.groundY - 100));
+      var size = Phaser.Math.FloatBetween(1, 2.4);
+      var star = this.add.circle(x, y, size, 0xffffff, Phaser.Math.FloatBetween(0.25, 0.78));
       star.setScrollFactor(0.25);
     }
 
-    for (var c = 0; c < 8; c++) {
+    for (var c = 0; c < 9; c++) {
       var cloud = this.add.ellipse(
         Phaser.Math.Between(120, settings.worldWidth - 120),
-        Phaser.Math.Between(80, Math.max(150, this.groundY - 220)),
-        Phaser.Math.Between(110, 210),
-        Phaser.Math.Between(22, 45),
+        Phaser.Math.Between(90, Math.max(170, this.groundY - 260)),
+        Phaser.Math.Between(120, 230),
+        Phaser.Math.Between(24, 48),
         0xffffff,
-        0.055
+        0.05
       );
       cloud.setScrollFactor(0.18);
     }
@@ -75,14 +95,12 @@ class LevelScene extends Phaser.Scene {
 
     var gy = this.groundY;
     var platforms = [
-      { x: 0, y: gy, w: 560, h: 40 },
-      { x: 720, y: gy - 75, w: 300, h: 34 },
-      { x: 1120, y: gy - 140, w: 300, h: 34 },
-      { x: 1520, y: gy - 85, w: 330, h: 34 },
-      { x: 2050, y: gy, w: 850, h: 40 }
+      { x: 0, y: gy, w: 620, h: 40 },
+      { x: 780, y: gy - 80, w: 320, h: 34 },
+      { x: 1220, y: gy - 145, w: 330, h: 34 },
+      { x: 1680, y: gy - 90, w: 360, h: 34 },
+      { x: 2240, y: gy, w: 860, h: 40 }
     ];
-
-    this.platformData = platforms;
 
     for (var i = 0; i < platforms.length; i++) {
       var p = platforms[i];
@@ -118,11 +136,11 @@ class LevelScene extends Phaser.Scene {
     this.flowers = this.physics.add.staticGroup();
 
     var flowers = [
-      { x: 245, y: this.groundY - 50 },
-      { x: 835, y: this.groundY - 125 },
-      { x: 1265, y: this.groundY - 190 },
-      { x: 1675, y: this.groundY - 135 },
-      { x: 2245, y: this.groundY - 50 }
+      { x: 275, y: this.groundY - 50 },
+      { x: 910, y: this.groundY - 130 },
+      { x: 1380, y: this.groundY - 195 },
+      { x: 1840, y: this.groundY - 140 },
+      { x: 2440, y: this.groundY - 50 }
     ];
 
     this.totalFlowers = flowers.length;
@@ -148,7 +166,7 @@ class LevelScene extends Phaser.Scene {
 
   createMoonBoy(settings) {
     var x = settings.worldWidth - 330;
-    var y = Math.max(115, Math.min(175, this.groundY - 330));
+    var y = Math.max(125, Math.min(190, this.groundY - 360));
 
     this.moonGroup = this.add.container(x, y);
     var moonGlow = this.add.circle(0, 0, 104, 0xfff2b6, 0.16);
@@ -184,30 +202,35 @@ class LevelScene extends Phaser.Scene {
   }
 
   createHud() {
-    var bg = this.add.graphics();
-    bg.fillStyle(0x071038, 0.48);
-    bg.fillRoundedRect(12, 16, 330, 58, 14);
-    bg.setScrollFactor(0);
+    var s = this.uiScale();
 
-    this.hudText = this.add.text(26, 24, "Pluisbloemen: 0/" + this.totalFlowers, {
+    var bg = this.add.graphics();
+    bg.fillStyle(0x071038, 0.50);
+    bg.fillRoundedRect(this.fixedX(14), this.fixedY(18), 330 * s, 58 * s, 14 * s);
+    bg.setScrollFactor(0);
+    bg.setDepth(200);
+
+    this.hudText = this.add.text(this.fixedX(28), this.fixedY(25), "Pluisbloemen: 0/" + this.totalFlowers, {
       fontFamily: "Arial",
-      fontSize: "24px",
+      fontSize: Math.round(24 * s) + "px",
       fontStyle: "bold",
       color: "#ffffff"
     });
     this.hudText.setScrollFactor(0);
+    this.hudText.setDepth(201);
 
-    this.helpText = this.add.text(26, 52, "Verzamel bloemen voor je broer op de maan", {
+    this.helpText = this.add.text(this.fixedX(28), this.fixedY(53), "Verzamel bloemen voor je broer op de maan", {
       fontFamily: "Arial",
-      fontSize: "14px",
+      fontSize: Math.round(14 * s) + "px",
       color: "#ffffff",
       alpha: 0.92
     });
     this.helpText.setScrollFactor(0);
+    this.helpText.setDepth(201);
 
-    var versionText = this.add.text(14, this.screenH - 24, window.FTTM.GameSettings.version, {
+    var versionText = this.add.text(this.fixedX(14), this.fixedY(this.screenH - 28), window.FTTM.GameSettings.version, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: Math.round(12 * s) + "px",
       color: "#ffffff",
       alpha: 0.65
     });
@@ -216,30 +239,36 @@ class LevelScene extends Phaser.Scene {
   }
 
   createTouchControls() {
-    var y = this.screenH - 84;
-    if (this.screenH > 700) y = this.screenH - 118;
+    var y = this.screenH - (this.isPortrait ? 108 : 72);
+    var size = this.isPortrait ? 31 : 28;
+    var gap = this.isPortrait ? 70 : 62;
 
-    this.makeButton(72, y, "‹", "left", 42);
-    this.makeButton(152, y, "›", "right", 42);
-    this.makeButton(this.screenW - 152, y, "↑", "jump", 42);
-    this.makeButton(this.screenW - 72, y, "✿", "blow", 42);
+    this.makeButton(58, y, "‹", "left", size);
+    this.makeButton(58 + gap, y, "›", "right", size);
+    this.makeButton(this.screenW - 58 - gap, y, "↑", "jump", size);
+    this.makeButton(this.screenW - 58, y, "✿", "blow", size);
   }
 
-  makeButton(x, y, label, key, size) {
+  makeButton(screenX, screenY, label, key, screenSize) {
+    var s = this.uiScale();
+    var x = this.fixedX(screenX);
+    var y = this.fixedY(screenY);
+    var size = screenSize * s;
+
     var group = this.add.container(x, y);
     group.setScrollFactor(0);
-    group.setDepth(100);
+    group.setDepth(250);
 
-    var shadow = this.add.circle(3, 5, size + 2, 0x000000, 0.18);
-    var outer = this.add.circle(0, 0, size, 0xffffff, 0.11);
-    outer.setStrokeStyle(2, 0xffffff, 0.28);
-    var inner = this.add.circle(0, 0, size - 10, 0x86b7ff, 0.18);
-    inner.setStrokeStyle(1, 0xffffff, 0.30);
-    var shine = this.add.ellipse(-10, -13, size * 0.9, size * 0.42, 0xffffff, 0.12);
+    var shadow = this.add.circle(3 * s, 5 * s, size + 2 * s, 0x000000, 0.20);
+    var outer = this.add.circle(0, 0, size, 0xffffff, 0.12);
+    outer.setStrokeStyle(2 * s, 0xffffff, 0.28);
+    var inner = this.add.circle(0, 0, size - 8 * s, 0x6f93d6, 0.18);
+    inner.setStrokeStyle(1 * s, 0xffffff, 0.32);
+    var shine = this.add.ellipse(-8 * s, -10 * s, size * 0.95, size * 0.42, 0xffffff, 0.14);
 
-    var text = this.add.text(0, -2, label, {
+    var text = this.add.text(0, -2 * s, label, {
       fontFamily: "Arial",
-      fontSize: key === "blow" ? "27px" : "32px",
+      fontSize: Math.round((key === "blow" ? 23 : 29) * s) + "px",
       fontStyle: "bold",
       color: "#ffffff"
     });
@@ -251,23 +280,27 @@ class LevelScene extends Phaser.Scene {
 
     var scene = this;
 
-    group.on("pointerdown", function () {
+    group.on("pointerdown", function (pointer) {
+      scene.activeButtonPointers[pointer.id] = key;
       scene.controls[key] = true;
-      outer.setAlpha(0.25);
-      inner.setAlpha(0.38);
+      outer.setAlpha(0.26);
+      inner.setAlpha(0.40);
       group.setScale(0.94);
     });
 
-    var up = function () {
-      scene.controls[key] = false;
-      outer.setAlpha(0.11);
-      inner.setAlpha(0.18);
-      group.setScale(1);
+    var release = function (pointer) {
+      if (scene.activeButtonPointers[pointer.id] === key) {
+        delete scene.activeButtonPointers[pointer.id];
+        scene.controls[key] = false;
+        outer.setAlpha(0.12);
+        inner.setAlpha(0.18);
+        group.setScale(1);
+      }
     };
 
-    group.on("pointerup", up);
-    group.on("pointerout", up);
-    group.on("pointercancel", up);
+    group.on("pointerup", release);
+    group.on("pointerout", release);
+    group.on("pointercancel", release);
   }
 
   collectFlower(player, flower) {
@@ -301,7 +334,7 @@ class LevelScene extends Phaser.Scene {
     this.controls.jump = false;
     this.controls.blow = false;
 
-    this.cameras.main.pan(this.moonGroup.x - this.screenW * 0.35, this.screenH * 0.45, 650, "Sine.easeInOut");
+    this.cameras.main.pan(this.moonGroup.x - (this.screenW * 0.35 / this.worldZoom), this.screenH * 0.45 / this.worldZoom, 650, "Sine.easeInOut");
 
     var scene = this;
     this.time.delayedCall(300, function () {
@@ -354,40 +387,41 @@ class LevelScene extends Phaser.Scene {
   }
 
   showFinishMessage() {
-    var panelW = Math.min(720, this.screenW - 60);
-    var panelH = 170;
-    var panelX = (this.screenW - panelW) / 2;
-    var panelY = Math.max(84, this.screenH * 0.22);
+    var s = this.uiScale();
+    var panelW = Math.min(720, this.screenW - 50) * s;
+    var panelH = 160 * s;
+    var panelX = this.fixedX((this.screenW - (panelW / s)) / 2);
+    var panelY = this.fixedY(Math.max(74, this.screenH * 0.22));
 
     var panel = this.add.graphics();
     panel.setScrollFactor(0);
-    panel.setDepth(200);
-    panel.fillStyle(0x071038, 0.84);
-    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 28);
-    panel.lineStyle(3, 0xffffff, 0.22);
-    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 28);
+    panel.setDepth(300);
+    panel.fillStyle(0x071038, 0.86);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 24 * s);
+    panel.lineStyle(3 * s, 0xffffff, 0.22);
+    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 24 * s);
 
-    var title = this.add.text(this.screenW / 2, panelY + 42, "Goed gedaan, Amber! 🌙", {
+    var title = this.add.text(this.fixedX(this.screenW / 2), panelY + 40 * s, "Goed gedaan, Amber! 🌙", {
       fontFamily: "Arial",
-      fontSize: "34px",
+      fontSize: Math.round(31 * s) + "px",
       fontStyle: "bold",
       color: "#ffffff",
       align: "center"
     });
     title.setOrigin(0.5);
     title.setScrollFactor(0);
-    title.setDepth(201);
+    title.setDepth(301);
 
-    var subtitle = this.add.text(this.screenW / 2, panelY + 98, "Je gaf de pluisbloemen liefdevol aan je broer op de maan.", {
+    var subtitle = this.add.text(this.fixedX(this.screenW / 2), panelY + 95 * s, "Je gaf de pluisbloemen liefdevol aan je broer op de maan.", {
       fontFamily: "Arial",
-      fontSize: "22px",
+      fontSize: Math.round(20 * s) + "px",
       color: "#ffffff",
       align: "center",
-      wordWrap: { width: panelW - 80 }
+      wordWrap: { width: panelW - 70 * s }
     });
     subtitle.setOrigin(0.5);
     subtitle.setScrollFactor(0);
-    subtitle.setDepth(201);
+    subtitle.setDepth(301);
 
     for (var i = 0; i < 22; i++) {
       var heart = this.add.text(this.moonGroup.x, this.moonGroup.y, "♡", {
@@ -436,7 +470,7 @@ class LevelScene extends Phaser.Scene {
       this.lastBlowTime = 0;
     }
 
-    if (this.player.y > this.screenH + 220) {
+    if (this.player.y > this.groundY + 260) {
       this.player.setPosition(120, this.groundY - 70);
       this.player.body.setVelocity(0, 0);
     }
