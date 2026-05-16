@@ -1,4 +1,3 @@
-
 class LevelScene extends Phaser.Scene {
   constructor() {
     super("LevelScene");
@@ -8,6 +7,11 @@ class LevelScene extends Phaser.Scene {
     this.finished = false;
     this.finishStarted = false;
     this.lastBlowAt = 0;
+    this.currentSpeed = 0;
+    this.facing = 1;
+    this.wasOnGround = false;
+    this.walkTime = 0;
+    this.landingTweenActive = false;
   }
 
   create() {
@@ -84,12 +88,20 @@ class LevelScene extends Phaser.Scene {
 
   createPlayer() {
     this.player = this.add.container(125, this.groundY - 72);
-    this.player.add(this.add.ellipse(0, 64, 48, 12, 0x000000, 0.18));
-    this.player.add(this.add.ellipse(-8, -18, 32, 48, 0xffdd54));
-    this.player.add(this.add.ellipse(0, 28, 42, 76, 0xffb7d5));
-    this.player.add(this.add.circle(0, -20, 22, 0xffe0bd));
-    this.player.add(this.add.triangle(-5, -40, -22, 0, 16, 0, -3, 24, 0xffdd54));
-    this.player.add(this.add.circle(8, -22, 2.5, 0x1d2148));
+    this.playerVisual = this.add.container(0, 0);
+
+    this.shadow = this.add.ellipse(0, 66, 50, 12, 0x000000, 0.18);
+    this.leftFoot = this.add.ellipse(-10, 62, 16, 8, 0xf0a0c3);
+    this.rightFoot = this.add.ellipse(10, 62, 16, 8, 0xf0a0c3);
+    const hairBack = this.add.ellipse(-8, -18, 32, 48, 0xffdd54);
+    const dress = this.add.ellipse(0, 28, 42, 76, 0xffb7d5);
+    const head = this.add.circle(0, -20, 22, 0xffe0bd);
+    const fringe = this.add.triangle(-5, -40, -22, 0, 16, 0, -3, 24, 0xffdd54);
+    const eye = this.add.circle(8, -22, 2.5, 0x1d2148);
+
+    this.playerVisual.add([this.shadow, this.leftFoot, this.rightFoot, hairBack, dress, head, fringe, eye]);
+    this.player.add(this.playerVisual);
+
     this.physics.add.existing(this.player);
     this.player.body.setSize(34, 82);
     this.player.body.setOffset(-17, -42);
@@ -222,7 +234,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createBlowEffect() {
-    const dir = this.player.scaleX < 0 ? -1 : 1;
+    const dir = this.facing;
     for (let i = 0; i < 10; i++) {
       const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86);
       seed.setDepth(12);
@@ -240,36 +252,131 @@ class LevelScene extends Phaser.Scene {
     }
   }
 
+  animatePlayer(delta, onGround) {
+    const absSpeed = Math.abs(this.currentSpeed);
+    const moving = absSpeed > 18 && onGround;
+
+    if (moving) {
+      this.walkTime += delta * 0.012;
+      const step = Math.sin(this.walkTime);
+      const lift = Math.abs(step);
+
+      this.playerVisual.y = -2 - lift * 2.5;
+      this.playerVisual.angle = Phaser.Math.Clamp(this.currentSpeed / 260, -1, 1) * 2.2;
+
+      this.leftFoot.x = -10 + step * 4;
+      this.rightFoot.x = 10 - step * 4;
+      this.leftFoot.y = 62 - Math.max(0, step) * 4;
+      this.rightFoot.y = 62 - Math.max(0, -step) * 4;
+
+      this.shadow.scaleX = 1 + lift * 0.08;
+    } else if (!this.landingTweenActive) {
+      this.playerVisual.y = Phaser.Math.Linear(this.playerVisual.y, 0, 0.18);
+      this.playerVisual.angle = Phaser.Math.Linear(this.playerVisual.angle, 0, 0.18);
+      this.leftFoot.x = Phaser.Math.Linear(this.leftFoot.x, -10, 0.18);
+      this.rightFoot.x = Phaser.Math.Linear(this.rightFoot.x, 10, 0.18);
+      this.leftFoot.y = Phaser.Math.Linear(this.leftFoot.y, 62, 0.18);
+      this.rightFoot.y = Phaser.Math.Linear(this.rightFoot.y, 62, 0.18);
+      this.shadow.scaleX = Phaser.Math.Linear(this.shadow.scaleX, 1, 0.18);
+    }
+  }
+
+  playJumpFeedback() {
+    const sx = this.facing;
+    this.tweens.killTweensOf(this.playerVisual);
+    this.tweens.add({
+      targets: this.playerVisual,
+      scaleX: sx * 0.94,
+      scaleY: 1.08,
+      duration: 90,
+      yoyo: true,
+      ease: "Sine.easeOut"
+    });
+  }
+
+  playLandingFeedback() {
+    this.landingTweenActive = true;
+    const sx = this.facing;
+    this.tweens.killTweensOf(this.playerVisual);
+    this.cameras.main.shake(85, 0.0025);
+    this.tweens.add({
+      targets: this.playerVisual,
+      scaleX: sx * 1.08,
+      scaleY: 0.90,
+      y: 4,
+      duration: 85,
+      ease: "Sine.easeOut",
+      yoyo: true,
+      onComplete: () => {
+        this.playerVisual.scaleX = sx;
+        this.playerVisual.scaleY = 1;
+        this.playerVisual.y = 0;
+        this.landingTweenActive = false;
+      }
+    });
+  }
+
   updateCamera(initial) {
     const maxScroll = window.FTTM.GameSettings.worldWidth - this.visibleW;
-    const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * 0.34, 0, maxScroll);
+
+    let lookRatio = 0.38;
+    if (this.currentSpeed > 20) lookRatio = 0.27;
+    if (this.currentSpeed < -20) lookRatio = 0.56;
+
+    const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * lookRatio, 0, maxScroll);
+
     if (initial) {
       this.cameras.main.scrollX = desiredX;
       this.cameras.main.scrollY = 0;
       return;
     }
-    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.075);
+
+    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.055);
     this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, 0, 0.075);
   }
 
-  update() {
+  update(time, delta) {
     if (this.finished) return;
+
     const input = window.FTTM.InputState || this.controls;
-    let speed = 0;
-    if (input.left) speed = -window.FTTM.GameSettings.playerSpeed;
-    if (input.right) speed = window.FTTM.GameSettings.playerSpeed;
-    this.player.body.setVelocityX(speed);
-    if (speed < 0) this.player.setScale(-1, 1);
-    if (speed > 0) this.player.setScale(1, 1);
-    if (input.jump && this.player.body.blocked.down) this.player.body.setVelocityY(window.FTTM.GameSettings.jumpVelocity);
+    const settings = window.FTTM.GameSettings;
+    const onGround = this.player.body.blocked.down;
+
+    let targetSpeed = 0;
+    if (input.left) targetSpeed -= settings.playerSpeed;
+    if (input.right) targetSpeed += settings.playerSpeed;
+
+    const rate = targetSpeed === 0 ? settings.deceleration : settings.acceleration;
+    this.currentSpeed = Phaser.Math.MoveTowards(this.currentSpeed, targetSpeed, rate * (delta / 1000));
+    this.player.body.setVelocityX(this.currentSpeed);
+
+    if (Math.abs(this.currentSpeed) > 8) {
+      this.facing = this.currentSpeed < 0 ? -1 : 1;
+      this.playerVisual.scaleX = this.facing;
+    }
+
+    if (input.jump && onGround) {
+      this.player.body.setVelocityY(settings.jumpVelocity);
+      this.playJumpFeedback();
+    }
+
+    if (!this.wasOnGround && onGround) {
+      this.playLandingFeedback();
+    }
+    this.wasOnGround = onGround;
+
     if (input.blow && this.time.now - this.lastBlowAt > 360) {
       this.lastBlowAt = this.time.now;
       this.createBlowEffect();
     }
+
     if (this.player.y > this.groundY + 260) {
       this.player.setPosition(125, this.groundY - 72);
       this.player.body.setVelocity(0, 0);
+      this.currentSpeed = 0;
     }
+
+    this.animatePlayer(delta, onGround);
     this.updateCamera(false);
   }
 }
