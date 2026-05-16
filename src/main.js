@@ -9,7 +9,7 @@
   }
 
   if (!window.FTTM || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
-    showError("Gamebestanden zijn niet goed geladen. Controleer of src/scenes/BootScene.js en src/scenes/LevelScene.js bestaan.");
+    showError("Gamebestanden zijn niet goed geladen.");
     return;
   }
 
@@ -18,7 +18,7 @@
   const config = {
     type: Phaser.AUTO,
     parent: "game",
-    backgroundColor: "#081039",
+    backgroundColor: "#071038",
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
