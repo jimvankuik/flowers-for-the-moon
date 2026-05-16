@@ -1,12 +1,11 @@
 class BootScene extends Phaser.Scene {
   constructor() {
-    super("BootScene");
+    super('BootScene');
   }
+
+  preload() {}
 
   create() {
-    this.scene.start("LevelScene");
+    this.scene.start('LevelScene');
   }
 }
-
-window.FTTM = window.FTTM || {};
-window.FTTM.BootScene = BootScene;
