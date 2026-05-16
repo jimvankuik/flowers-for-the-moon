@@ -1,10 +1,8 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v14-stable-polish",
-  baseWidth: 960,
-  baseHeight: 540,
-  worldWidth: 2800,
+  version: "v15-responsive-final",
+  worldWidth: 2900,
   gravityY: 1120,
   playerSpeed: 245,
   jumpVelocity: -535

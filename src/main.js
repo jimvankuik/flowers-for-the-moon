@@ -8,27 +8,25 @@
     return;
   }
 
-  if (!window.FTTM || !window.FTTM.GameSettings || !window.FTTM.Level1 || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
+  if (!window.FTTM || !window.FTTM.GameSettings || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
     showError("Gamebestanden zijn niet goed geladen.");
     return;
   }
-
-  var settings = window.FTTM.GameSettings;
 
   var config = {
     type: Phaser.AUTO,
     parent: "game",
     backgroundColor: "#071038",
     scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: settings.baseWidth,
-      height: settings.baseHeight
+      mode: Phaser.Scale.RESIZE,
+      autoCenter: Phaser.Scale.NO_CENTER,
+      width: window.innerWidth,
+      height: window.innerHeight
     },
     physics: {
       default: "arcade",
       arcade: {
-        gravity: { y: settings.gravityY },
+        gravity: { y: window.FTTM.GameSettings.gravityY },
         debug: false
       }
     },
