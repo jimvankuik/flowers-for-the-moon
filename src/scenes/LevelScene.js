@@ -21,8 +21,10 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v32-visible-controls-levelscene
+// build-marker: v33-zoom-camera-tuning-levelscene
 
-// build-marker: v32-visible-controls-levelscene
+// build-marker: v33-zoom-camera-tuning-levelscene
 
-// build-marker: v32-visible-controls-levelscene
+// build-marker: v33-zoom-camera-tuning-levelscene
+
+// build-marker: v33-zoom-camera-tuning-levelscene
