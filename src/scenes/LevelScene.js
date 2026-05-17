@@ -11,6 +11,8 @@ class LevelScene extends Phaser.Scene {
     this.facing = 1;
     this.wasGrounded = false;
     this.walkTime = 0;
+    this.jumpWasDown = false;
+    this.jumpLocked = false;
   }
 
   create() {
@@ -352,10 +354,11 @@ class LevelScene extends Phaser.Scene {
   updateCamera(initial) {
     const maxScroll = window.FTTM.GameSettings.worldWidth - this.visibleW;
 
-    // Minder extreem naar rechts dan v20/v21: player staat iets links van midden, met zicht vooruit.
-    let lookRatio = 0.44;
-    if (this.currentSpeed > 20) lookRatio = 0.34;
-    if (this.currentSpeed < -20) lookRatio = 0.56;
+    // Camera reageert sneller en houdt Amber dichter bij het midden,
+    // met alsnog wat vooruitzicht in de looprichting.
+    let lookRatio = 0.50;
+    if (this.currentSpeed > 20) lookRatio = 0.42;
+    if (this.currentSpeed < -20) lookRatio = 0.58;
 
     const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * lookRatio, 0, maxScroll);
 
@@ -365,8 +368,8 @@ class LevelScene extends Phaser.Scene {
       return;
     }
 
-    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.06);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, 0, 0.075);
+    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.16);
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, 0, 0.12);
   }
 
   update(time, delta) {
@@ -393,10 +396,24 @@ class LevelScene extends Phaser.Scene {
       this.player.scaleX = this.facing;
     }
 
-    if (input.jump && onGround) {
+    const jumpPressedNow = input.jump && !this.jumpWasDown;
+    const jumpReleasedNow = !input.jump && this.jumpWasDown;
+
+    if (jumpPressedNow && onGround && !this.jumpLocked) {
       this.player.body.setVelocityY(settings.jumpVelocity);
+      this.jumpLocked = true;
       this.playJumpFeedback();
     }
+
+    if (jumpReleasedNow && this.player.body.velocity.y < settings.jumpCutVelocity) {
+      this.player.body.setVelocityY(settings.jumpCutVelocity);
+    }
+
+    if (!input.jump && onGround) {
+      this.jumpLocked = false;
+    }
+
+    this.jumpWasDown = input.jump;
 
     if (!this.wasGrounded && onGround) {
       this.playLandingFeedback();
