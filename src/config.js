@@ -1,11 +1,11 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v22-movement-fix",
+  version: "v23-safe-movement",
   worldWidth: 3300,
-  gravityY: 1220,
+  gravityY: 1180,
   playerSpeed: 260,
-  jumpVelocity: -590,
-  acceleration: 1450,
-  deceleration: 1750
+  jumpVelocity: -575,
+  acceleration: 1400,
+  deceleration: 1700
 };
