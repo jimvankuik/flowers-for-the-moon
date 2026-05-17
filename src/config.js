@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v29-config-fix",
+  version: "v30-camera-controls-fix",
   worldWidth: 3300,
   gravityY: 1180,
   playerSpeed: 260,
@@ -9,7 +9,9 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -260,
   acceleration: 1400,
   deceleration: 1700,
-  buildMarker: "v29-config-fix-config"
+  buildMarker: "v30-camera-controls-fix-config"
 };
 
-// build-marker: v29-config-fix-config
+// build-marker: v30-camera-controls-fix-config
+
+// build-marker: v30-camera-controls-fix-config
