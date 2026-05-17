@@ -2,9 +2,12 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Flowers to the Moon</title>
-  <link rel="stylesheet" href="./style.css?v=v25" />
+  <link rel="stylesheet" href="./style.css?v=v26" />
 </head>
 <body>
   <div id="game"></div>
@@ -12,7 +15,7 @@
     <button id="refresh-button" type="button" aria-label="Refresh">↻</button>
     <div id="hud-panel"><div id="flower-counter">Pluisbloemen: 0/5</div><div id="hud-subtitle">Verzamel bloemen voor je broer op de maan</div></div>
     <div id="finish-panel" class="hidden"><div id="finish-title">Goed gedaan, Amber! 🌙</div><div id="finish-text">Je gaf de pluisbloemen liefdevol aan je broer op de maan.</div></div>
-    <div id="version-label">v25-camera-ui</div>
+    <div id="version-label">v26-camera-ui</div>
     <div id="touch-controls">
       <div class="control-cluster left-cluster">
         <button class="game-control" data-control="left"><span class="control-icon">‹</span><span class="control-label">LINKS</span></button>
@@ -36,17 +39,17 @@
       var activePointers = {};
       document.querySelectorAll('[data-control]').forEach(function(button) {
         var key = button.getAttribute('data-control');
-        button.addEventListener('pointerdown', function(e) { e.preventDefault(); button.setPointerCapture(e.pointerId); activePointers[e.pointerId] = key; window.FTTM.InputState[key] = true; button.classList.add('pressed'); });
+        button.addEventListener('pointerdown', function(e) { e.preventDefault(); try { button.setPointerCapture(e.pointerId); } catch(err) {} activePointers[e.pointerId] = key; window.FTTM.InputState[key] = true; button.classList.add('pressed'); });
         function release(e) { e.preventDefault(); if (activePointers[e.pointerId] === key) { delete activePointers[e.pointerId]; window.FTTM.InputState[key] = false; button.classList.remove('pressed'); } }
         button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release); button.addEventListener('lostpointercapture', release);
       });
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  <script src="./src/config.js?v=v25"></script>
-  <script src="./src/levels/level1.js?v=v25"></script>
-  <script src="./src/scenes/BootScene.js?v=v25"></script>
-  <script src="./src/scenes/LevelScene.js?v=v25"></script>
-  <script src="./src/main.js?v=v25"></script>
+  <script src="./src/config.js?v=v26"></script>
+  <script src="./src/levels/level1.js?v=v26"></script>
+  <script src="./src/scenes/BootScene.js?v=v26"></script>
+  <script src="./src/scenes/LevelScene.js?v=v26"></script>
+  <script src="./src/main.js?v=v26"></script>
 </body>
 </html>
