@@ -1,7 +1,7 @@
 
 class LevelScene extends Phaser.Scene {
   constructor(){super('LevelScene');this.collected=0;this.totalFlowers=0;this.finished=false;this.finishStarted=false;this.lastBlowAt=0;this.currentSpeed=0;this.facing=1;this.wasGrounded=false;this.walkTime=0;this.jumpWasDown=false;this.jumpLocked=false;}
-  create(){this.screenW=this.scale.width;this.screenH=this.scale.height;this.isPortrait=this.screenH>=this.screenW;this.worldZoom=this.isPortrait?0.56:0.98;if(this.screenW<420&&this.isPortrait)this.worldZoom=0.54;this.visibleW=this.screenW/this.worldZoom;this.visibleH=this.screenH/this.worldZoom;this.bottomSafe=this.isPortrait?300:135;this.groundY=this.visibleH-this.bottomSafe;let s=window.FTTM.GameSettings;this.physics.world.setBounds(0,0,s.worldWidth,this.visibleH+320);if(window.FTTM.hideFinishPanel)window.FTTM.hideFinishPanel();if(window.FTTM.setFlowerCounter)window.FTTM.setFlowerCounter(0,5);this.drawBackground(s);this.createPlatforms();this.createPlayer();this.createFlowers();this.createMoonGoal(s);this.physics.add.collider(this.player,this.platforms);this.physics.add.overlap(this.player,this.flowers,this.collectFlower,null,this);this.physics.add.overlap(this.player,this.goalZone,this.startFinishSequence,null,this);this.cameras.main.setBounds(0,0,s.worldWidth,this.visibleH);this.cameras.main.setZoom(this.worldZoom);this.updateCamera(true);this.scale.on('resize',()=>{if(!this.finished)this.scene.restart();});}
+  create(){this.screenW=this.scale.width;this.screenH=this.scale.height;this.isPortrait=this.screenH>=this.screenW;this.worldZoom = this.isPortrait ? 0.56 : 0.34;if(this.screenW<420&&this.isPortrait)this.worldZoom=0.54;this.visibleW=this.screenW/this.worldZoom;this.visibleH=this.screenH/this.worldZoom;this.bottomSafe = this.isPortrait ? 120 : 70;this.groundY=this.visibleH-this.bottomSafe;let s=window.FTTM.GameSettings;this.physics.world.setBounds(0,0,s.worldWidth,this.visibleH+320);if(window.FTTM.hideFinishPanel)window.FTTM.hideFinishPanel();if(window.FTTM.setFlowerCounter)window.FTTM.setFlowerCounter(0,5);this.drawBackground(s);this.createPlatforms();this.createPlayer();this.createFlowers();this.createMoonGoal(s);this.physics.add.collider(this.player,this.platforms);this.physics.add.overlap(this.player,this.flowers,this.collectFlower,null,this);this.physics.add.overlap(this.player,this.goalZone,this.startFinishSequence,null,this);this.cameras.main.setBounds(0,0,s.worldWidth,this.visibleH);this.cameras.main.setZoom(this.worldZoom);this.updateCamera(true);this.scale.on('resize',()=>{if(!this.finished)this.scene.restart();});}
   drawBackground(s){this.add.rectangle(s.worldWidth/2,this.visibleH/2,s.worldWidth,this.visibleH,0x13285d);for(let i=0;i<155;i++){let star=this.add.circle(Phaser.Math.Between(0,s.worldWidth),Phaser.Math.Between(12,Math.max(300,this.groundY-110)),Phaser.Math.FloatBetween(1,2.3),0xffffff,Phaser.Math.FloatBetween(.22,.78));star.setScrollFactor(.25);}for(let i=0;i<8;i++){let cloud=this.add.ellipse(Phaser.Math.Between(130,s.worldWidth-150),Phaser.Math.Between(90,Math.max(170,this.groundY-280)),Phaser.Math.Between(130,250),Phaser.Math.Between(24,50),0xffffff,.05);cloud.setScrollFactor(.18);}this.add.rectangle(s.worldWidth/2,this.groundY+75,s.worldWidth,150,0x071038);}
   createPlatforms(){this.platforms=this.physics.add.staticGroup();let gy=this.groundY;[{x:0,y:gy,w:700,h:42},{x:850,y:gy-85,w:360,h:36},{x:1340,y:gy-150,w:360,h:36},{x:1850,y:gy-90,w:380,h:36},{x:2460,y:gy,w:840,h:42}].forEach(p=>{let b=this.add.rectangle(p.x+p.w/2,p.y+p.h/2,p.w,p.h,0x5f9567);b.setStrokeStyle(4,0xb6eb86);this.physics.add.existing(b,true);this.platforms.add(b);let g=this.add.rectangle(p.x+p.w/2,p.y+4,p.w,7,0xd9f89b,.45);g.setDepth(2);});}
   createPlayer(){this.player=this.add.container(125,this.groundY-72);this.shadow=this.add.ellipse(0,66,50,12,0x000000,.18);this.leftFoot=this.add.ellipse(-10,62,15,7,0xf0a0c3);this.rightFoot=this.add.ellipse(10,62,15,7,0xf0a0c3);let hair=this.add.ellipse(-8,-18,32,48,0xffdd54),dress=this.add.ellipse(0,28,42,76,0xffb7d5),head=this.add.circle(0,-20,22,0xffe0bd),fringe=this.add.triangle(-5,-40,-22,0,16,0,-3,24,0xffdd54),eye=this.add.circle(8,-22,2.5,0x1d2148);this.player.add([this.shadow,this.leftFoot,this.rightFoot,hair,dress,head,fringe,eye]);this.physics.add.existing(this.player);this.player.body.setSize(34,82);this.player.body.setOffset(-17,-42);this.player.body.setCollideWorldBounds(true);}
@@ -21,10 +21,12 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v33-zoom-camera-tuning-levelscene
+// build-marker: v34-camera-zoom-fix-levelscene
 
-// build-marker: v33-zoom-camera-tuning-levelscene
+// build-marker: v34-camera-zoom-fix-levelscene
 
-// build-marker: v33-zoom-camera-tuning-levelscene
+// build-marker: v34-camera-zoom-fix-levelscene
 
-// build-marker: v33-zoom-camera-tuning-levelscene
+// build-marker: v34-camera-zoom-fix-levelscene
+
+// build-marker: v34-camera-zoom-fix-levelscene
