@@ -21,4 +21,6 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v29-config-fix-levelscene
+// build-marker: v30-camera-controls-fix-levelscene
+
+// build-marker: v30-camera-controls-fix-levelscene
