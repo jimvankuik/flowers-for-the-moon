@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v32-visible-controls",
+  version: "v33-zoom-camera-tuning",
   worldWidth: 3300,
   gravityY: 1180,
   playerSpeed: 260,
@@ -9,11 +9,13 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -260,
   acceleration: 1400,
   deceleration: 1700,
-  buildMarker: "v32-visible-controls-config"
+  buildMarker: "v33-zoom-camera-tuning-config"
 };
 
-// build-marker: v32-visible-controls-config
+// build-marker: v33-zoom-camera-tuning-config
 
-// build-marker: v32-visible-controls-config
+// build-marker: v33-zoom-camera-tuning-config
 
-// build-marker: v32-visible-controls-config
+// build-marker: v33-zoom-camera-tuning-config
+
+// build-marker: v33-zoom-camera-tuning-config
