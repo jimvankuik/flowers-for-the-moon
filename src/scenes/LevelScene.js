@@ -9,9 +9,8 @@ class LevelScene extends Phaser.Scene {
     this.lastBlowAt = 0;
     this.currentSpeed = 0;
     this.facing = 1;
-    this.wasOnGround = false;
+    this.wasGrounded = false;
     this.walkTime = 0;
-    this.landingTweenActive = false;
   }
 
   create() {
@@ -46,7 +45,6 @@ class LevelScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, settings.worldWidth, this.visibleH);
     this.cameras.main.setZoom(this.worldZoom);
-    this.cameras.main.scrollY = 0;
     this.updateCamera(true);
 
     this.scale.on("resize", () => {
@@ -108,19 +106,17 @@ class LevelScene extends Phaser.Scene {
 
   createPlayer() {
     this.player = this.add.container(125, this.groundY - 72);
-    this.playerVisual = this.add.container(0, 0);
 
     this.shadow = this.add.ellipse(0, 66, 50, 12, 0x000000, 0.18);
-    this.leftFoot = this.add.ellipse(-10, 62, 16, 8, 0xf0a0c3);
-    this.rightFoot = this.add.ellipse(10, 62, 16, 8, 0xf0a0c3);
+    this.leftFoot = this.add.ellipse(-10, 62, 15, 7, 0xf0a0c3);
+    this.rightFoot = this.add.ellipse(10, 62, 15, 7, 0xf0a0c3);
     const hairBack = this.add.ellipse(-8, -18, 32, 48, 0xffdd54);
     const dress = this.add.ellipse(0, 28, 42, 76, 0xffb7d5);
     const head = this.add.circle(0, -20, 22, 0xffe0bd);
     const fringe = this.add.triangle(-5, -40, -22, 0, 16, 0, -3, 24, 0xffdd54);
     const eye = this.add.circle(8, -22, 2.5, 0x1d2148);
 
-    this.playerVisual.add([this.shadow, this.leftFoot, this.rightFoot, hairBack, dress, head, fringe, eye]);
-    this.player.add(this.playerVisual);
+    this.player.add([this.shadow, this.leftFoot, this.rightFoot, hairBack, dress, head, fringe, eye]);
 
     this.physics.add.existing(this.player);
     this.player.body.setSize(34, 82);
@@ -310,18 +306,16 @@ class LevelScene extends Phaser.Scene {
       const step = Math.sin(this.walkTime);
       const lift = Math.abs(step);
 
-      this.playerVisual.y = -2 - lift * 2.5;
-      this.playerVisual.angle = Phaser.Math.Clamp(this.currentSpeed / 260, -1, 1) * 2.2;
+      this.player.y += Math.sin(this.walkTime * 2) * 0.10;
+      this.player.angle = Phaser.Math.Clamp(this.currentSpeed / 260, -1, 1) * 1.5;
 
       this.leftFoot.x = -10 + step * 4;
       this.rightFoot.x = 10 - step * 4;
       this.leftFoot.y = 62 - Math.max(0, step) * 4;
       this.rightFoot.y = 62 - Math.max(0, -step) * 4;
-
       this.shadow.scaleX = 1 + lift * 0.08;
-    } else if (!this.landingTweenActive) {
-      this.playerVisual.y = Phaser.Math.Linear(this.playerVisual.y, 0, 0.18);
-      this.playerVisual.angle = Phaser.Math.Linear(this.playerVisual.angle, 0, 0.18);
+    } else {
+      this.player.angle = Phaser.Math.Linear(this.player.angle, 0, 0.15);
       this.leftFoot.x = Phaser.Math.Linear(this.leftFoot.x, -10, 0.18);
       this.rightFoot.x = Phaser.Math.Linear(this.rightFoot.x, 10, 0.18);
       this.leftFoot.y = Phaser.Math.Linear(this.leftFoot.y, 62, 0.18);
@@ -331,34 +325,26 @@ class LevelScene extends Phaser.Scene {
   }
 
   playJumpFeedback() {
-    this.tweens.killTweensOf(this.playerVisual);
     this.tweens.add({
-      targets: this.playerVisual,
-      scaleX: 0.94,
-      scaleY: 1.08,
-      duration: 90,
+      targets: this.player,
+      scaleY: 1.04,
+      duration: 85,
       yoyo: true,
       ease: "Sine.easeOut"
     });
   }
 
   playLandingFeedback() {
-    this.landingTweenActive = true;
-    this.tweens.killTweensOf(this.playerVisual);
-    this.cameras.main.shake(85, 0.0025);
+    this.cameras.main.shake(70, 0.002);
     this.tweens.add({
-      targets: this.playerVisual,
-      scaleX: 1.08,
-      scaleY: 0.90,
-      y: 4,
-      duration: 85,
-      ease: "Sine.easeOut",
+      targets: this.player,
+      scaleY: 0.94,
+      duration: 75,
       yoyo: true,
+      ease: "Sine.easeOut",
       onComplete: () => {
-        this.playerVisual.scaleX = 1;
-        this.playerVisual.scaleY = 1;
-        this.playerVisual.y = 0;
-        this.landingTweenActive = false;
+        this.player.scaleY = 1;
+        this.player.scaleX = this.facing;
       }
     });
   }
@@ -366,8 +352,9 @@ class LevelScene extends Phaser.Scene {
   updateCamera(initial) {
     const maxScroll = window.FTTM.GameSettings.worldWidth - this.visibleW;
 
-    let lookRatio = 0.38;
-    if (this.currentSpeed > 20) lookRatio = 0.27;
+    // Minder extreem naar rechts dan v20/v21: player staat iets links van midden, met zicht vooruit.
+    let lookRatio = 0.44;
+    if (this.currentSpeed > 20) lookRatio = 0.34;
     if (this.currentSpeed < -20) lookRatio = 0.56;
 
     const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * lookRatio, 0, maxScroll);
@@ -378,7 +365,7 @@ class LevelScene extends Phaser.Scene {
       return;
     }
 
-    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.055);
+    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, desiredX, 0.06);
     this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, 0, 0.075);
   }
 
@@ -394,7 +381,11 @@ class LevelScene extends Phaser.Scene {
     if (input.right) targetSpeed += settings.playerSpeed;
 
     const rate = targetSpeed === 0 ? settings.deceleration : settings.acceleration;
-    this.currentSpeed = Phaser.Math.MoveTowards(this.currentSpeed, targetSpeed, rate * (delta / 1000));
+    const step = rate * (delta / 1000);
+
+    if (this.currentSpeed < targetSpeed) this.currentSpeed = Math.min(this.currentSpeed + step, targetSpeed);
+    if (this.currentSpeed > targetSpeed) this.currentSpeed = Math.max(this.currentSpeed - step, targetSpeed);
+
     this.player.body.setVelocityX(this.currentSpeed);
 
     if (Math.abs(this.currentSpeed) > 8) {
@@ -407,10 +398,10 @@ class LevelScene extends Phaser.Scene {
       this.playJumpFeedback();
     }
 
-    if (!this.wasOnGround && onGround) {
+    if (!this.wasGrounded && onGround) {
       this.playLandingFeedback();
     }
-    this.wasOnGround = onGround;
+    this.wasGrounded = onGround;
 
     if (input.blow && this.time.now - this.lastBlowAt > 360) {
       this.lastBlowAt = this.time.now;
