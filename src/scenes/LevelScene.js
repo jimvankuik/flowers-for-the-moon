@@ -21,16 +21,18 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
 
-// build-marker: v36-moon-landscape-zoom-levelscene
+// build-marker: v37-moon-visible-end-levelscene
+
+// build-marker: v37-moon-visible-end-levelscene
