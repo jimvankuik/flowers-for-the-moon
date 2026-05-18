@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v34-camera-zoom-fix",
+  version: "v35-landscape-camera-fix",
   worldWidth: 3300,
   gravityY: 1180,
   playerSpeed: 260,
@@ -9,15 +9,17 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -260,
   acceleration: 1400,
   deceleration: 1700,
-  buildMarker: "v34-camera-zoom-fix-config"
+  buildMarker: "v35-landscape-camera-fix-config"
 };
 
-// build-marker: v34-camera-zoom-fix-config
+// build-marker: v35-landscape-camera-fix-config
 
-// build-marker: v34-camera-zoom-fix-config
+// build-marker: v35-landscape-camera-fix-config
 
-// build-marker: v34-camera-zoom-fix-config
+// build-marker: v35-landscape-camera-fix-config
 
-// build-marker: v34-camera-zoom-fix-config
+// build-marker: v35-landscape-camera-fix-config
 
-// build-marker: v34-camera-zoom-fix-config
+// build-marker: v35-landscape-camera-fix-config
+
+// build-marker: v35-landscape-camera-fix-config
