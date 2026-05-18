@@ -21,22 +21,24 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
 
-// build-marker: v39-moon-movement-polish-levelscene
+// build-marker: v40-platform-extend-levelscene
+
+// v40-platform-extend marker
