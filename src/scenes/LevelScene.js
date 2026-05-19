@@ -8,7 +8,7 @@ class LevelScene extends Phaser.Scene {
     {x:850,y:gy-85,w:360,h:36},
     {x:1340,y:gy-150,w:360,h:36},
     {x:1850,y:gy-90,w:380,h:36},
-    {x:2850,y:gy,w:1400,h:42}
+    {x:2460,y:gy,w:1740,h:42}
   ].forEach(p=>{let b=this.add.rectangle(p.x+p.w/2,p.y+p.h/2,p.w,p.h,0x5f9567);b.setStrokeStyle(4,0xb6eb86);this.physics.add.existing(b,true);this.platforms.add(b);let g=this.add.rectangle(p.x+p.w/2,p.y+4,p.w,7,0xd9f89b,.45);g.setDepth(2);});}
 
   createPlayer(){this.player=this.add.container(125,this.groundY-72);this.shadow=this.add.ellipse(0,66,50,12,0x000000,.18);this.leftFoot=this.add.ellipse(-10,62,15,7,0xf0a0c3);this.rightFoot=this.add.ellipse(10,62,15,7,0xf0a0c3);let hair=this.add.ellipse(-8,-18,32,48,0xffdd54),dress=this.add.ellipse(0,28,42,76,0xffb7d5),head=this.add.circle(0,-20,22,0xffe0bd),fringe=this.add.triangle(-5,-40,-22,0,16,0,-3,24,0xffdd54),eye=this.add.circle(8,-22,2.5,0x1d2148);this.player.add([this.shadow,this.leftFoot,this.rightFoot,hair,dress,head,fringe,eye]);this.physics.add.existing(this.player);this.player.body.setSize(34,82);this.player.body.setOffset(-17,-42);this.player.body.setCollideWorldBounds(true);}
@@ -17,7 +17,7 @@ class LevelScene extends Phaser.Scene {
     [1010,this.groundY-137],
     [1520,this.groundY-202],
     [2040,this.groundY-142],
-    [3300,this.groundY-52]
+    [3050,this.groundY-52]
   ];this.totalFlowers=flowers.length;if(window.FTTM.setFlowerCounter)window.FTTM.setFlowerCounter(0,this.totalFlowers);flowers.forEach(d=>{let f=this.add.container(d[0],d[1]);f.add(this.add.rectangle(0,24,4,44,0x67bf55));for(let i=0;i<8;i++){let a=Math.PI*2/8*i;f.add(this.add.circle(Math.cos(a)*10,Math.sin(a)*10,7,0xffffff));}f.add(this.add.circle(0,0,4,0xfff0b4));this.physics.add.existing(f,true);f.body.setSize(44,76);f.body.setOffset(-22,-20);f.setData('collected',false);this.flowers.add(f);});}
 
   createMoonGoal(s){let x=3925,y=this.isPortrait?Math.max(145,this.groundY-430):Math.max(120,this.groundY-275);this.moonGroup=this.add.container(x,y).setDepth(8);let glow=this.add.circle(0,0,125,0xfff2b6,.22),moon=this.add.circle(0,0,78,0xffefaf);moon.setStrokeStyle(4,0xffffff,.72);let c1=this.add.circle(-18,-12,9,0xdac88a,.3),c2=this.add.circle(18,15,7,0xdac88a,.25),boy=this.add.container(10,18);boy.add(this.add.circle(0,-28,16,0xffd8b5));boy.add(this.add.rectangle(0,4,30,52,0x92bfff));boy.add(this.add.circle(6,-30,2.3,0x1d2148));boy.add(this.add.rectangle(-8,-42,20,9,0x6a4a32));this.moonGroup.add([glow,moon,c1,c2,boy]);}
@@ -38,26 +38,28 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// build-marker: v43-finish-actually-fixed
+// build-marker: v44-reachable-platforms
 
-// v43-finish-actually-fixed marker
+// v44-reachable-platforms marker
 
-// build-marker: v43-finish-actually-fixed-levelscene
+// build-marker: v44-reachable-platforms
+
+// build-marker: v44-reachable-platforms-levelscene
