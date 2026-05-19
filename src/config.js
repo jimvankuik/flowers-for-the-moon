@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v49-finish-camera-polish",
+  version: "v50-left-camera-anchor",
   worldWidth: 4800,
   gravityY: 1680,
   playerSpeed: 335,
@@ -9,37 +9,39 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -310,
   acceleration: 2400,
   deceleration: 2850,
-  buildMarker: "v49-finish-camera-polish-config"
+  buildMarker: "v50-left-camera-anchor-config"
 };
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish
+// build-marker: v50-left-camera-anchor
 
-// build-marker: v49-finish-camera-polish-config
+// build-marker: v50-left-camera-anchor-config
 
-// build-marker: v49-finish-camera-polish-config
+// build-marker: v50-left-camera-anchor-config
 
-// build-marker: v49-finish-camera-polish-config
+// build-marker: v50-left-camera-anchor-config
 
-// build-marker: v49-finish-camera-polish-config
+// build-marker: v50-left-camera-anchor-config
+
+// build-marker: v50-left-camera-anchor-config
