@@ -24,7 +24,7 @@ class LevelScene extends Phaser.Scene {
 
   createFinishMarker(){this.finishMarkerX=3320;this.finishMarker=this.add.container(this.finishMarkerX,this.groundY-108).setDepth(90);let aura=this.add.circle(0,-38,38,0xfff0b4,.2),pole=this.add.rectangle(0,30,8,132,0xfff6cf,1);pole.setStrokeStyle(2,0xffdd75,1);let flag=this.add.triangle(36,-36,-2,-62,-2,-10,80,-36,0xffd85c,1);flag.setStrokeStyle(3,0xfff0a0,1);let star=this.add.text(0,-42,'✦',{fontFamily:'Arial',fontSize:'36px',fontStyle:'bold',color:'#fff8cf'}).setOrigin(.5);this.finishMarker.add([aura,pole,flag,star]);this.tweens.add({targets:flag,x:44,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});this.goalZone=this.add.zone(this.finishMarkerX+22,this.groundY-74,150,175);this.physics.add.existing(this.goalZone,true);}
   collectFlower(p,flower){if(!flower||flower.getData('collected'))return;flower.setData('collected',true);this.collected++;if(window.FTTM.setFlowerCounter)window.FTTM.setFlowerCounter(this.collected,this.totalFlowers);if(flower.body)flower.body.enable=false;this.tweens.add({targets:flower,y:flower.y-36,alpha:0,scale:1.35,duration:260,ease:'Sine.easeOut',onComplete:function(){flower.setActive(false);flower.setVisible(false);}});}
-  startFinishSequence(){if(this.finishStarted||this.collected<this.totalFlowers)return;this.finishStarted=true;this.finished=true;this.finishCameraX=this.cameras.main.scrollX;this.cameraTargetX=this.finishCameraX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.finishCameraX=this.cameras.main.scrollX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.player.body.setVelocity(0,0);/* v52: camera pan uitgeschakeld tijdens finish */this.time.delayedCall(420,()=>this.playFlowerGiftAnimation());}
+  startFinishSequence(){if(this.finishStarted||this.collected<this.totalFlowers)return;this.finishStarted=true;this.finished=true;this.finishCameraX=this.cameras.main.scrollX;this.cameraTargetX=this.finishCameraX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.finishCameraX=this.cameras.main.scrollX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.player.body.setVelocity(0,0);/* v53: camera pan uitgeschakeld tijdens finish */this.time.delayedCall(420,()=>this.playFlowerGiftAnimation());}
   playFlowerGiftAnimation(){let sx=this.player.x+10,sy=this.player.y-48,tx=this.moonGroup.x+12,ty=this.moonGroup.y+20;for(let i=0;i<this.totalFlowers;i++){let f=this.add.container(sx,sy).setDepth(30);f.add(this.add.rectangle(0,18,3,28,0x67bf55));f.add(this.add.circle(0,0,8,0xffffff));f.add(this.add.circle(-6,0,6,0xffffff));f.add(this.add.circle(6,0,6,0xffffff));f.add(this.add.circle(0,-6,6,0xffffff));f.add(this.add.circle(0,6,6,0xffffff));f.add(this.add.circle(0,0,3,0xfff0b4));this.tweens.add({targets:f,x:tx+Phaser.Math.Between(-22,20),y:ty+Phaser.Math.Between(-18,18),scale:.76,duration:850,delay:i*160,ease:'Sine.easeInOut',onComplete:()=>{this.tweens.add({targets:f,alpha:0,y:f.y-16,duration:420,onComplete:()=>f.destroy()});}});}this.time.delayedCall(1300,()=>{this.showHearts();if(window.FTTM.showFinishPanel)window.FTTM.showFinishPanel();});}
   showHearts(){for(let i=0;i<24;i++){let h=this.add.text(this.moonGroup.x,this.moonGroup.y,'♡',{fontFamily:'Arial',fontSize:Phaser.Math.Between(20,38)+'px',color:'#ffd4e5'}).setOrigin(.5).setDepth(35);this.tweens.add({targets:h,x:h.x+Phaser.Math.Between(-170,170),y:h.y-Phaser.Math.Between(70,210),alpha:0,duration:Phaser.Math.Between(1000,1900),delay:i*55,onComplete:()=>h.destroy()});}}
   createBlowEffect(){let dir=this.facing;for(let i=0;i<10;i++){let seed=this.add.circle(this.player.x+dir*28,this.player.y-22,3,0xffffff,.86).setDepth(12);this.tweens.add({targets:seed,x:seed.x+dir*Phaser.Math.Between(60,135),y:seed.y+Phaser.Math.Between(-46,18),alpha:0,scale:Phaser.Math.FloatBetween(.6,1.35),duration:Phaser.Math.Between(480,760),delay:i*18,ease:'Sine.easeOut',onComplete:()=>seed.destroy()});}}
@@ -33,7 +33,6 @@ class LevelScene extends Phaser.Scene {
   playLandingFeedback(){this.cameras.main.shake(70,.002);this.tweens.add({targets:this.player,scaleY:.94,duration:75,yoyo:true,ease:'Sine.easeOut',onComplete:()=>{this.player.scaleY=1;this.player.scaleX=this.facing;}});}
   handleVariableJump(input,onGround){let s=window.FTTM.GameSettings,pressed=input.jump&&!this.jumpWasDown,released=!input.jump&&this.jumpWasDown;if(pressed&&onGround&&!this.jumpLocked){this.player.body.setVelocityY(s.jumpVelocity);this.jumpLocked=true;this.playJumpFeedback();}if(released&&this.player.body.velocity.y<s.jumpCutVelocity)this.player.body.setVelocityY(s.jumpCutVelocity);if(!input.jump&&onGround)this.jumpLocked=false;this.jumpWasDown=input.jump;}
   updateCamera(initial){
-    // Finish-camera blijft vast tijdens de eindanimatie.
     if(this.finished&&this.finishCameraX!==undefined){
       this.cameras.main.scrollX=this.finishCameraX;
       this.cameras.main.scrollY=0;
@@ -44,57 +43,34 @@ class LevelScene extends Phaser.Scene {
     const max=Math.max(0,s.worldWidth-this.visibleW);
     const speed=this.currentSpeed||0;
 
-    // v52:
-    // Nieuwe aanpak: dead-zone/framing-zone.
-    // In landscape mag Amber niet verder dan ±33% vanaf links komen.
-    // Komt ze daar voorbij, dan corrigeert de camera actief maar nog steeds soepel.
+    // v53:
+    // Harde dead-zone uit v52 verwijderd, want die veroorzaakte schokken.
+    // In landscape staat Amber nu bij naar rechts lopen rond 24% vanaf links,
+    // met een zachte extra look-ahead voor meer zicht vooruit.
     let targetAnchor;
     if(this.isPortrait){
-      if(speed<-35) targetAnchor=.54;
-      else if(speed>35) targetAnchor=.18;
-      else targetAnchor=.26;
+      if(speed<-35) targetAnchor=.52;
+      else if(speed>35) targetAnchor=.16;
+      else targetAnchor=.24;
     }else{
-      if(speed<-35) targetAnchor=.48;
-      else if(speed>35) targetAnchor=.30;
-      else targetAnchor=.32;
+      if(speed<-35) targetAnchor=.46;
+      else if(speed>35) targetAnchor=.24;
+      else targetAnchor=.28;
     }
 
     if(this.cameraAnchor===undefined) this.cameraAnchor=targetAnchor;
-
-    // Rustige anchor-overgang, zodat de fijne startbeweging uit v51 blijft.
-    const anchorEase=this.isPortrait?.10:.055;
-    this.cameraAnchor=Phaser.Math.Linear(this.cameraAnchor,targetAnchor,anchorEase);
+    this.cameraAnchor=Phaser.Math.Linear(this.cameraAnchor,targetAnchor,this.isPortrait?.11:.09);
 
     let desired=this.player.x-this.visibleW*this.cameraAnchor;
 
-    // Dead-zone correctie:
-    // Meet waar Amber nu op het scherm staat. Als ze te ver rechts staat,
-    // duwen we het camera-doel extra naar rechts zodat Amber links in beeld blijft.
-    const currentScroll=this.cameras.main.scrollX||0;
-    const playerScreenX=this.player.x-currentScroll;
-
-    if(!this.isPortrait){
-      const maxPlayerScreenX=this.visibleW*.33;
-      const idealPlayerScreenX=this.visibleW*.30;
-
-      if(playerScreenX>maxPlayerScreenX){
-        const correction=this.player.x-idealPlayerScreenX;
-        desired=Math.max(desired,correction);
-      }
-    }else{
-      const maxPlayerScreenX=this.visibleW*.34;
-      const idealPlayerScreenX=this.visibleW*.28;
-
-      if(playerScreenX>maxPlayerScreenX){
-        const correction=this.player.x-idealPlayerScreenX;
-        desired=Math.max(desired,correction);
-      }
+    // Zachte look-ahead i.p.v. harde correctie.
+    if(speed>35){
+      desired+=this.isPortrait?this.visibleW*.055:this.visibleW*.065;
     }
 
-    // Eindgebied blijft rustig in beeld komen zoals v51.
     const wantsFinishPreview=(this.collected>=this.totalFlowers&&this.finishMarkerX);
     if(this.finishPreviewAlpha===undefined) this.finishPreviewAlpha=0;
-    this.finishPreviewAlpha=Phaser.Math.Linear(this.finishPreviewAlpha,wantsFinishPreview?1:0,.018);
+    this.finishPreviewAlpha=Phaser.Math.Linear(this.finishPreviewAlpha,wantsFinishPreview?1:0,.016);
 
     if(wantsFinishPreview){
       const finishRatio=this.isPortrait?.56:.44;
@@ -112,13 +88,8 @@ class LevelScene extends Phaser.Scene {
       return;
     }
 
-    // Zodra Amber te ver rechts komt, sneller corrigeren.
-    const needsStrongCorrection=!this.isPortrait && playerScreenX>this.visibleW*.33;
-    const targetEase=needsStrongCorrection?.34:(this.isPortrait?.22:.18);
-    const cameraEase=needsStrongCorrection?.28:(this.isPortrait?.18:.14);
-
-    this.cameraTargetX=Phaser.Math.Linear(this.cameraTargetX,desired,targetEase);
-    this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,this.cameraTargetX,cameraEase);
+    this.cameraTargetX=Phaser.Math.Linear(this.cameraTargetX,desired,this.isPortrait?.20:.17);
+    this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,this.cameraTargetX,this.isPortrait?.18:.15);
     this.cameras.main.scrollY=0;
   }
 
@@ -126,44 +97,46 @@ class LevelScene extends Phaser.Scene {
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// v52-camera-deadzone marker
+// v53-smooth-left-camera marker
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone
+// build-marker: v53-smooth-left-camera
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
 
-// build-marker: v52-camera-deadzone-levelscene
+// build-marker: v53-smooth-left-camera-levelscene
+
+// build-marker: v53-smooth-left-camera-levelscene
