@@ -24,7 +24,7 @@ class LevelScene extends Phaser.Scene {
 
   createFinishMarker(){this.finishMarkerX=3320;this.finishMarker=this.add.container(this.finishMarkerX,this.groundY-108).setDepth(90);let aura=this.add.circle(0,-38,38,0xfff0b4,.2),pole=this.add.rectangle(0,30,8,132,0xfff6cf,1);pole.setStrokeStyle(2,0xffdd75,1);let flag=this.add.triangle(36,-36,-2,-62,-2,-10,80,-36,0xffd85c,1);flag.setStrokeStyle(3,0xfff0a0,1);let star=this.add.text(0,-42,'✦',{fontFamily:'Arial',fontSize:'36px',fontStyle:'bold',color:'#fff8cf'}).setOrigin(.5);this.finishMarker.add([aura,pole,flag,star]);this.tweens.add({targets:flag,x:44,duration:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});this.goalZone=this.add.zone(this.finishMarkerX+22,this.groundY-74,150,175);this.physics.add.existing(this.goalZone,true);}
   collectFlower(p,flower){if(!flower||flower.getData('collected'))return;flower.setData('collected',true);this.collected++;if(window.FTTM.setFlowerCounter)window.FTTM.setFlowerCounter(this.collected,this.totalFlowers);if(flower.body)flower.body.enable=false;this.tweens.add({targets:flower,y:flower.y-36,alpha:0,scale:1.35,duration:260,ease:'Sine.easeOut',onComplete:function(){flower.setActive(false);flower.setVisible(false);}});}
-  startFinishSequence(){if(this.finishStarted||this.collected<this.totalFlowers)return;this.finishStarted=true;this.finished=true;this.cameras.main.stopFollow();this.cameras.main.scrollX=Math.max(0,this.finishMarkerX-this.visibleW*0.55);this.player.body.setVelocity(0,0);this.cameras.main.pan(this.finishMarkerX-this.visibleW*.45,this.visibleH*.42,650,'Sine.easeInOut');this.time.delayedCall(420,()=>this.playFlowerGiftAnimation());}
+  startFinishSequence(){if(this.finishStarted||this.collected<this.totalFlowers)return;this.finishStarted=true;this.finished=true;this.finishCameraX=this.cameras.main.scrollX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.finishCameraX=this.cameras.main.scrollX;this.cameras.main.stopFollow();this.cameras.main.scrollX=this.finishCameraX;this.player.body.setVelocity(0,0);this.cameras.main.pan(this.finishCameraX + this.visibleW * 0.5, this.visibleH * 0.42, 1, 'Linear');this.time.delayedCall(420,()=>this.playFlowerGiftAnimation());}
   playFlowerGiftAnimation(){let sx=this.player.x+10,sy=this.player.y-48,tx=this.moonGroup.x+12,ty=this.moonGroup.y+20;for(let i=0;i<this.totalFlowers;i++){let f=this.add.container(sx,sy).setDepth(30);f.add(this.add.rectangle(0,18,3,28,0x67bf55));f.add(this.add.circle(0,0,8,0xffffff));f.add(this.add.circle(-6,0,6,0xffffff));f.add(this.add.circle(6,0,6,0xffffff));f.add(this.add.circle(0,-6,6,0xffffff));f.add(this.add.circle(0,6,6,0xffffff));f.add(this.add.circle(0,0,3,0xfff0b4));this.tweens.add({targets:f,x:tx+Phaser.Math.Between(-22,20),y:ty+Phaser.Math.Between(-18,18),scale:.76,duration:850,delay:i*160,ease:'Sine.easeInOut',onComplete:()=>{this.tweens.add({targets:f,alpha:0,y:f.y-16,duration:420,onComplete:()=>f.destroy()});}});}this.time.delayedCall(1300,()=>{this.showHearts();if(window.FTTM.showFinishPanel)window.FTTM.showFinishPanel();});}
   showHearts(){for(let i=0;i<24;i++){let h=this.add.text(this.moonGroup.x,this.moonGroup.y,'♡',{fontFamily:'Arial',fontSize:Phaser.Math.Between(20,38)+'px',color:'#ffd4e5'}).setOrigin(.5).setDepth(35);this.tweens.add({targets:h,x:h.x+Phaser.Math.Between(-170,170),y:h.y-Phaser.Math.Between(70,210),alpha:0,duration:Phaser.Math.Between(1000,1900),delay:i*55,onComplete:()=>h.destroy()});}}
   createBlowEffect(){let dir=this.facing;for(let i=0;i<10;i++){let seed=this.add.circle(this.player.x+dir*28,this.player.y-22,3,0xffffff,.86).setDepth(12);this.tweens.add({targets:seed,x:seed.x+dir*Phaser.Math.Between(60,135),y:seed.y+Phaser.Math.Between(-46,18),alpha:0,scale:Phaser.Math.FloatBetween(.6,1.35),duration:Phaser.Math.Between(480,760),delay:i*18,ease:'Sine.easeOut',onComplete:()=>seed.destroy()});}}
@@ -32,38 +32,40 @@ class LevelScene extends Phaser.Scene {
   playJumpFeedback(){this.tweens.add({targets:this.player,scaleY:1.04,duration:85,yoyo:true,ease:'Sine.easeOut'});}
   playLandingFeedback(){this.cameras.main.shake(70,.002);this.tweens.add({targets:this.player,scaleY:.94,duration:75,yoyo:true,ease:'Sine.easeOut',onComplete:()=>{this.player.scaleY=1;this.player.scaleX=this.facing;}});}
   handleVariableJump(input,onGround){let s=window.FTTM.GameSettings,pressed=input.jump&&!this.jumpWasDown,released=!input.jump&&this.jumpWasDown;if(pressed&&onGround&&!this.jumpLocked){this.player.body.setVelocityY(s.jumpVelocity);this.jumpLocked=true;this.playJumpFeedback();}if(released&&this.player.body.velocity.y<s.jumpCutVelocity)this.player.body.setVelocityY(s.jumpCutVelocity);if(!input.jump&&onGround)this.jumpLocked=false;this.jumpWasDown=input.jump;}
-  updateCamera(initial){let s=window.FTTM.GameSettings,max=Math.max(0,s.worldWidth-this.visibleW);let left=this.currentSpeed<-8,right=this.currentSpeed>8||this.facing>=0;let desired;if(this.isPortrait){if(left)desired=this.player.x-this.visibleW*.60;else if(right)desired=this.player.x-this.visibleW*.22;else desired=this.player.x-this.visibleW*.30;}else{if(left)desired=this.player.x-this.visibleW*.55;else if(right)desired=this.player.x-this.visibleW*.38;else desired=this.player.x-this.visibleW*.42;}if(this.collected>=this.totalFlowers&&this.finishMarkerX){let ratio=this.isPortrait?.60:.50;desired=Math.max(desired,this.finishMarkerX-this.visibleW*ratio);}desired=Phaser.Math.Clamp(desired,0,max);if(initial){this.cameras.main.scrollX=desired;this.cameras.main.scrollY=0;return;}let follow=this.isPortrait?.95:.86;this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,desired,follow);this.cameras.main.scrollY=0;}
+  updateCamera(initial){if(this.finished&&this.finishCameraX!==undefined){this.cameras.main.scrollX=this.finishCameraX;this.cameras.main.scrollY=0;return;}let s=window.FTTM.GameSettings,max=Math.max(0,s.worldWidth-this.visibleW);let left=this.currentSpeed<-8,right=this.currentSpeed>8||this.facing>=0;let desired;if(this.isPortrait){if(left)desired=this.player.x-this.visibleW*.60;else if(right)desired=this.player.x-this.visibleW*.22;else desired=this.player.x-this.visibleW*.30;}else{if(left)desired=this.player.x-this.visibleW*.55;else if(right)desired=this.player.x-this.visibleW*.38;else desired=this.player.x-this.visibleW*.42;}if(this.collected>=this.totalFlowers&&this.finishMarkerX){let ratio=this.isPortrait?.60:.50;desired=Math.max(desired,this.finishMarkerX-this.visibleW*ratio);}desired=Phaser.Math.Clamp(desired,0,max);if(initial){this.cameras.main.scrollX=desired;this.cameras.main.scrollY=0;return;}let follow=this.isPortrait?.95:.86;this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,desired,follow);this.cameras.main.scrollY=0;}
 
   update(time,delta){if(this.finished)return;let input=window.FTTM.InputState||{},s=window.FTTM.GameSettings,onGround=this.player.body.blocked.down,target=0;if(input.left)target-=s.playerSpeed;if(input.right)target+=s.playerSpeed;let rate=target===0?s.deceleration:s.acceleration,step=rate*(delta/1000);if(this.currentSpeed<target)this.currentSpeed=Math.min(this.currentSpeed+step,target);if(this.currentSpeed>target)this.currentSpeed=Math.max(this.currentSpeed-step,target);this.player.body.setVelocityX(this.currentSpeed);if(Math.abs(this.currentSpeed)>8){this.facing=this.currentSpeed<0?-1:1;this.player.scaleX=this.facing;}this.handleVariableJump(input,onGround);if(!this.wasGrounded&&onGround)this.playLandingFeedback();this.wasGrounded=onGround;if(input.blow&&this.time.now-this.lastBlowAt>360){this.lastBlowAt=this.time.now;this.createBlowEffect();}if(this.player.y>this.groundY+260){this.player.setPosition(125,this.groundY-72);this.player.body.setVelocity(0,0);this.currentSpeed=0;}this.animatePlayer(delta,onGround);this.updateCamera(false);}
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// v46-camera-finish-lock marker
+// v47-finish-camera-fixed marker
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
 
-// build-marker: v46-camera-finish-lock-levelscene
+// build-marker: v47-finish-camera-fixed-levelscene
 
-// build-marker: v46-camera-finish-lock
+// build-marker: v47-finish-camera-fixed
+
+// build-marker: v47-finish-camera-fixed-levelscene
