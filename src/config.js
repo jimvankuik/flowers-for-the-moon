@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v56-double-jump-fix",
+  version: "v57-double-jump-crash-fix",
   worldWidth: 4800,
   gravityY: 1680,
   playerSpeed: 335,
@@ -9,51 +9,53 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -310,
   acceleration: 2400,
   deceleration: 2850,
-  buildMarker: "v56-double-jump-fix-config"
+  buildMarker: "v57-double-jump-crash-fix-config"
 };
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix
+// build-marker: v57-double-jump-crash-fix
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
 
-// build-marker: v56-double-jump-fix-config
+// build-marker: v57-double-jump-crash-fix-config
+
+// build-marker: v57-double-jump-crash-fix-config
