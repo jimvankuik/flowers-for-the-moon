@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "v47-finish-camera-fixed",
+  version: "v48-smooth-camera",
   worldWidth: 4800,
   gravityY: 1680,
   playerSpeed: 335,
@@ -9,33 +9,35 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -310,
   acceleration: 2400,
   deceleration: 2850,
-  buildMarker: "v47-finish-camera-fixed-config"
+  buildMarker: "v48-smooth-camera-config"
 };
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed-config
+// build-marker: v48-smooth-camera-config
 
-// build-marker: v47-finish-camera-fixed-config
+// build-marker: v48-smooth-camera-config
+
+// build-marker: v48-smooth-camera-config
