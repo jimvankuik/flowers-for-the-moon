@@ -32,40 +32,99 @@ class LevelScene extends Phaser.Scene {
   playJumpFeedback(){this.tweens.add({targets:this.player,scaleY:1.04,duration:85,yoyo:true,ease:'Sine.easeOut'});}
   playLandingFeedback(){this.cameras.main.shake(70,.002);this.tweens.add({targets:this.player,scaleY:.94,duration:75,yoyo:true,ease:'Sine.easeOut',onComplete:()=>{this.player.scaleY=1;this.player.scaleX=this.facing;}});}
   handleVariableJump(input,onGround){let s=window.FTTM.GameSettings,pressed=input.jump&&!this.jumpWasDown,released=!input.jump&&this.jumpWasDown;if(pressed&&onGround&&!this.jumpLocked){this.player.body.setVelocityY(s.jumpVelocity);this.jumpLocked=true;this.playJumpFeedback();}if(released&&this.player.body.velocity.y<s.jumpCutVelocity)this.player.body.setVelocityY(s.jumpCutVelocity);if(!input.jump&&onGround)this.jumpLocked=false;this.jumpWasDown=input.jump;}
-  updateCamera(initial){if(this.finished&&this.finishCameraX!==undefined){this.cameras.main.scrollX=this.finishCameraX;this.cameras.main.scrollY=0;return;}let s=window.FTTM.GameSettings,max=Math.max(0,s.worldWidth-this.visibleW);let left=this.currentSpeed<-8,right=this.currentSpeed>8||this.facing>=0;let desired;if(this.isPortrait){if(left)desired=this.player.x-this.visibleW*.60;else if(right)desired=this.player.x-this.visibleW*.22;else desired=this.player.x-this.visibleW*.30;}else{if(left)desired=this.player.x-this.visibleW*.55;else if(right)desired=this.player.x-this.visibleW*.38;else desired=this.player.x-this.visibleW*.42;}if(this.collected>=this.totalFlowers&&this.finishMarkerX){let ratio=this.isPortrait?.60:.50;desired=Math.max(desired,this.finishMarkerX-this.visibleW*ratio);}desired=Phaser.Math.Clamp(desired,0,max);if(initial){this.cameras.main.scrollX=desired;this.cameras.main.scrollY=0;return;}let follow=this.isPortrait?.95:.86;this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,desired,follow);this.cameras.main.scrollY=0;}
+  updateCamera(initial){
+    if(this.finished&&this.finishCameraX!==undefined){
+      this.cameras.main.scrollX=this.finishCameraX;
+      this.cameras.main.scrollY=0;
+      return;
+    }
+
+    const s=window.FTTM.GameSettings;
+    const max=Math.max(0,s.worldWidth-this.visibleW);
+
+    // v48 smooth camera:
+    // Niet meer direct wisselen tussen links/rechts anchors.
+    // Eerst de gewenste anchor rustig laten overgaan, daarna scrollX vloeiend volgen.
+    const speed=this.currentSpeed||0;
+    let targetAnchor;
+
+    if(this.isPortrait){
+      if(speed<-35) targetAnchor=.56;
+      else if(speed>35) targetAnchor=.24;
+      else targetAnchor=.34;
+    }else{
+      if(speed<-35) targetAnchor=.54;
+      else if(speed>35) targetAnchor=.40;
+      else targetAnchor=.44;
+    }
+
+    if(this.cameraAnchor===undefined) this.cameraAnchor=targetAnchor;
+    this.cameraAnchor=Phaser.Math.Linear(this.cameraAnchor,targetAnchor,this.isPortrait?.07:.06);
+
+    let desired=this.player.x-this.visibleW*this.cameraAnchor;
+
+    // Eindgebied rustig in beeld brengen na 5/5, zonder plotselinge camera-sprong.
+    const wantsFinishPreview=(this.collected>=this.totalFlowers&&this.finishMarkerX);
+    if(this.finishPreviewAlpha===undefined) this.finishPreviewAlpha=0;
+    this.finishPreviewAlpha=Phaser.Math.Linear(this.finishPreviewAlpha,wantsFinishPreview?1:0,.045);
+
+    if(wantsFinishPreview){
+      const finishRatio=this.isPortrait?.60:.50;
+      const finishX=this.finishMarkerX-this.visibleW*finishRatio;
+      const blended=Phaser.Math.Linear(desired,finishX,this.finishPreviewAlpha);
+      desired=Math.max(desired,blended);
+    }
+
+    desired=Phaser.Math.Clamp(desired,0,max);
+
+    if(this.cameraTargetX===undefined||initial){
+      this.cameraTargetX=desired;
+      this.cameras.main.scrollX=desired;
+      this.cameras.main.scrollY=0;
+      return;
+    }
+
+    // Doelpositie filteren en daarna camera daar rustig heen laten bewegen.
+    // Dit voorkomt schokken door kleine velocity/anchor-wisselingen.
+    this.cameraTargetX=Phaser.Math.Linear(this.cameraTargetX,desired,this.isPortrait?.18:.14);
+    this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,this.cameraTargetX,this.isPortrait?.20:.16);
+    this.cameras.main.scrollY=0;
+  }
 
   update(time,delta){if(this.finished)return;let input=window.FTTM.InputState||{},s=window.FTTM.GameSettings,onGround=this.player.body.blocked.down,target=0;if(input.left)target-=s.playerSpeed;if(input.right)target+=s.playerSpeed;let rate=target===0?s.deceleration:s.acceleration,step=rate*(delta/1000);if(this.currentSpeed<target)this.currentSpeed=Math.min(this.currentSpeed+step,target);if(this.currentSpeed>target)this.currentSpeed=Math.max(this.currentSpeed-step,target);this.player.body.setVelocityX(this.currentSpeed);if(Math.abs(this.currentSpeed)>8){this.facing=this.currentSpeed<0?-1:1;this.player.scaleX=this.facing;}this.handleVariableJump(input,onGround);if(!this.wasGrounded&&onGround)this.playLandingFeedback();this.wasGrounded=onGround;if(input.blow&&this.time.now-this.lastBlowAt>360){this.lastBlowAt=this.time.now;this.createBlowEffect();}if(this.player.y>this.groundY+260){this.player.setPosition(125,this.groundY-72);this.player.body.setVelocity(0,0);this.currentSpeed=0;}this.animatePlayer(delta,onGround);this.updateCamera(false);}
 }
 window.FTTM=window.FTTM||{};window.FTTM.LevelScene=LevelScene;
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// v47-finish-camera-fixed marker
+// v48-smooth-camera marker
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed-levelscene
+// build-marker: v48-smooth-camera-levelscene
 
-// build-marker: v47-finish-camera-fixed
+// build-marker: v48-smooth-camera
 
-// build-marker: v47-finish-camera-fixed-levelscene
+// build-marker: v48-smooth-camera-levelscene
+
+// build-marker: v48-smooth-camera-levelscene
