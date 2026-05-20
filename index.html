@@ -6,72 +6,83 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Flowers to the Moon - Fluistervelden Prototype v1</title>
-  <link rel="stylesheet" href="./style.css?v=fluistervelden-prototype-v1" />
+  <title>Flowers to the Moon - Fluistervelden Prototype v2</title>
+  <link rel="stylesheet" href="./style.css?v=fluistervelden-v2" />
 </head>
 <body>
   <div id="game"></div>
   <div id="game-ui" aria-hidden="true">
     <div id="refresh-button" role="button" aria-label="Refresh">↻</div>
     <div id="hud-panel">
-      <div id="flower-counter">Maanpluisjes: 0/3</div>
-      <div id="hud-subtitle">Verzamel maanpluisjes voor je broer op de maan</div>
+      <div id="flower-counter">Maanpluis: 0/3</div>
+      <div id="hud-subtitle">Breng maanpluis naar het licht</div>
     </div>
-    <div id="finish-panel" class="hidden"><div id="finish-title">Goed gedaan, Amber! 🌙</div><div id="finish-text">Je bracht de maanpluisjes een stukje dichterbij.</div></div>
-    <div id="version-label">fluistervelden-prototype-v1</div>
     <div id="message-panel" class="hidden"></div>
+    <div id="finish-panel" class="hidden">
+      <div id="finish-title">Een beetje dichter bij de maan 🌙</div>
+      <div id="finish-text">Amber heeft het maanpluis naar boven laten zweven.</div>
+    </div>
+    <div id="version-label">fluistervelden-prototype-v2</div>
     <div id="touch-controls">
       <div class="control-cluster left-cluster">
         <button class="game-control" data-control="left"><span class="control-icon">‹</span><span class="control-label">LINKS</span></button>
         <button class="game-control" data-control="right"><span class="control-icon">›</span><span class="control-label">RECHTS</span></button>
       </div>
       <div class="control-cluster right-cluster">
-        <button class="game-control primary" data-control="jump"><span class="control-icon wing">⌃</span><span class="control-label">SPRINGEN</span></button>
-        <button class="game-control flower" data-control="blow"><span class="control-icon">✿</span><span class="control-label">DOEN</span></button>
+        <button class="game-control primary" data-control="jump"><span class="control-icon wing">⌃</span><span class="control-label">SPRING</span></button>
+        <button class="game-control flower" data-control="blow"><span class="control-icon">✿</span><span class="control-label">DOE</span></button>
       </div>
     </div>
   </div>
   <script>
     window.FTTM = window.FTTM || {};
     window.FTTM.InputState = { left:false, right:false, jump:false, blow:false };
-    window.FTTM.setFlowerCounter = function(value, total) { var el = document.getElementById('flower-counter'); if (el) el.textContent = 'Maanpluisjes: ' + value + '/' + total; };
-    window.FTTM.showFinishPanel = function() { var el = document.getElementById('finish-panel'); if (el) el.classList.remove('hidden'); };
-    window.FTTM.hideFinishPanel = function() { var el = document.getElementById('finish-panel'); if (el) el.classList.add('hidden'); };
-    window.FTTM.showMessage = function(text) {
+    window.FTTM.setFlowerCounter = function(value, total) {
+      var el = document.getElementById('flower-counter');
+      if (el) el.textContent = 'Maanpluis: ' + value + '/' + total;
+    };
+    window.FTTM.showMessage = function(text, ms) {
       var el = document.getElementById('message-panel');
       if (!el) return;
       el.textContent = text;
       el.classList.remove('hidden');
-      clearTimeout(window.FTTM.messageTimer);
-      window.FTTM.messageTimer = setTimeout(function(){ el.classList.add('hidden'); }, 2600);
+      clearTimeout(window.FTTM._messageTimer);
+      window.FTTM._messageTimer = setTimeout(function(){ el.classList.add('hidden'); }, ms || 2600);
     };
+    window.FTTM.showFinishPanel = function() { var el = document.getElementById('finish-panel'); if (el) el.classList.remove('hidden'); };
+    window.FTTM.hideFinishPanel = function() { var el = document.getElementById('finish-panel'); if (el) el.classList.add('hidden'); };
     window.addEventListener('load', function () {
       var refresh = document.getElementById('refresh-button');
       if (refresh) refresh.addEventListener('click', function(e) { e.preventDefault(); window.location.reload(); });
       var activePointers = {};
       document.querySelectorAll('[data-control]').forEach(function(button) {
         var key = button.getAttribute('data-control');
-        button.addEventListener('pointerdown', function(e) { e.preventDefault(); try { button.setPointerCapture(e.pointerId); } catch(err) {} activePointers[e.pointerId] = key; window.FTTM.InputState[key] = true; button.classList.add('pressed'); });
-        function release(e) { e.preventDefault(); if (activePointers[e.pointerId] === key) { delete activePointers[e.pointerId]; window.FTTM.InputState[key] = false; button.classList.remove('pressed'); } }
-        button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release); button.addEventListener('lostpointercapture', release);
-      });
-      window.addEventListener('keydown', function(e){
-        if (e.key === 'ArrowLeft' || e.key === 'a') window.FTTM.InputState.left = true;
-        if (e.key === 'ArrowRight' || e.key === 'd') window.FTTM.InputState.right = true;
-        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') window.FTTM.InputState.jump = true;
-        if (e.key === 'e' || e.key === 'Enter') window.FTTM.InputState.blow = true;
-      });
-      window.addEventListener('keyup', function(e){
-        if (e.key === 'ArrowLeft' || e.key === 'a') window.FTTM.InputState.left = false;
-        if (e.key === 'ArrowRight' || e.key === 'd') window.FTTM.InputState.right = false;
-        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') window.FTTM.InputState.jump = false;
-        if (e.key === 'e' || e.key === 'Enter') window.FTTM.InputState.blow = false;
+        button.addEventListener('pointerdown', function(e) {
+          e.preventDefault();
+          try { button.setPointerCapture(e.pointerId); } catch(err) {}
+          activePointers[e.pointerId] = key;
+          window.FTTM.InputState[key] = true;
+          button.classList.add('pressed');
+        });
+        function release(e) {
+          e.preventDefault();
+          if (activePointers[e.pointerId] === key) {
+            delete activePointers[e.pointerId];
+            window.FTTM.InputState[key] = false;
+            button.classList.remove('pressed');
+          }
+        }
+        button.addEventListener('pointerup', release);
+        button.addEventListener('pointercancel', release);
+        button.addEventListener('lostpointercapture', release);
       });
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  <script src="./src/config.js?v=fluistervelden-prototype-v1"></script>
-  <script src="./src/scenes/LevelScene.js?v=fluistervelden-prototype-v1"></script>
-  <script src="./src/main.js?v=fluistervelden-prototype-v1"></script>
+  <script src="./src/config.js?v=fluistervelden-v2"></script>
+  <script src="./src/levels/level1.js?v=fluistervelden-v2"></script>
+  <script src="./src/scenes/BootScene.js?v=fluistervelden-v2"></script>
+  <script src="./src/scenes/LevelScene.js?v=fluistervelden-v2"></script>
+  <script src="./src/main.js?v=fluistervelden-v2"></script>
 </body>
 </html>
