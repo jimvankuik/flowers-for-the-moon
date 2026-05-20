@@ -1,37 +1,22 @@
-(function () {
-  function showError(message) {
-    document.body.innerHTML = '<div style="color:white;font-family:Arial;padding:24px;line-height:1.4"><h2>Flowers to the Moon start niet</h2><p>' + message + '</p><p style="opacity:.75">Controleer of alle bestanden uit dezelfde zip zijn geüpload.</p></div>';
-  }
-
-  if (!window.Phaser) {
-    showError("Phaser is niet geladen.");
-    return;
-  }
-
-  if (!window.FTTM || !window.FTTM.GameSettings || !window.FTTM.BootScene || !window.FTTM.LevelScene) {
-    showError("Gamebestanden zijn niet goed geladen.");
-    return;
-  }
-
-  var config = {
+window.addEventListener('load', function(){
+  const config = {
     type: Phaser.AUTO,
-    parent: "game",
-    backgroundColor: "#071038",
+    parent: 'game',
+    backgroundColor: '#13285d',
     scale: {
       mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.NO_CENTER,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
       width: window.innerWidth,
       height: window.innerHeight
     },
     physics: {
-      default: "arcade",
+      default: 'arcade',
       arcade: {
         gravity: { y: window.FTTM.GameSettings.gravityY },
         debug: false
       }
     },
-    scene: [window.FTTM.BootScene, window.FTTM.LevelScene]
+    scene: [window.FTTM.LevelScene]
   };
-
-  new Phaser.Game(config);
-})();
+  window.FTTM.game = new Phaser.Game(config);
+});
