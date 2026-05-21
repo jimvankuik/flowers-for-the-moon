@@ -1,5 +1,6 @@
 window.FTTM = window.FTTM || {};
-
 window.FTTM.Level1 = {
-  note: "Responsive level layout is calculated in LevelScene.js"
+  name: "Fluistervelden",
+  prototype: "v2.2-scene-start-fix",
+  goal: "Een zachte droomroute: ontdekking, rust, klein beetje platforming, maan-reveal."
 };
