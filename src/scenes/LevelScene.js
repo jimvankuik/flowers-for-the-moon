@@ -94,8 +94,9 @@ class LevelScene extends Phaser.Scene {
     // Distant moon is placed near the actual end-route, not before it.
     // In earlier prototypes it sat around the old level end, which made the
     // camera appear to stop before the real moon moment on landscape.
-    this.add.circle(4300, 135, 70, 0xfff4bd, 0.34).setScrollFactor(0.62).setDepth(-1);
-    this.add.circle(4322, 116, 52, 0xfff8d6, 0.22).setScrollFactor(0.62).setDepth(-1);
+    // Soft distant moon hint near the final area. The real end moon is created in createFinishArea.
+    this.add.circle(5200, 125, 78, 0xfff4bd, 0.24).setScrollFactor(0.72).setDepth(-1);
+    this.add.circle(5224, 106, 58, 0xfff8d6, 0.15).setScrollFactor(0.72).setDepth(-1);
   }
 
   createOrganicRoute() {
@@ -110,7 +111,7 @@ class LevelScene extends Phaser.Scene {
     this.addGround(2000, gy - 42, 520, 'wind');           // wind clearing
     this.addGround(2520, gy - 20, 560, 'stones');         // two small jumps
     this.addGround(3080, gy - 56, 560, 'meadow');         // breathing space before final
-    this.addGround(3640, gy - 78, 980, 'moon-hill');      // final hill and moon approach
+    this.addGround(3640, gy - 78, 1780, 'moon-hill');     // spacious final hill and moon approach
 
     // Only two small, optional-feeling stepping stones to test light platforming.
     this.addSoftPlatform(2310, gy - 128, 170, 24, 0x80b96f);
@@ -238,7 +239,7 @@ class LevelScene extends Phaser.Scene {
     const data = [
       [710, gy - 120],       // after opening field
       [2195, gy - 154],      // wind moment
-      [3560, gy - 180]       // final fluff before the moon, not behind it
+      [4140, gy - 180]       // final fluff before the moon approach, clearly before the ending
     ];
     data.forEach((p, idx) => {
       const f = this.add.container(p[0], p[1]).setDepth(20);
@@ -276,16 +277,31 @@ class LevelScene extends Phaser.Scene {
 
   createFinishArea() {
     const gy = this.groundY;
-    this.finishX = 4300;
-    this.finishMarker = this.add.container(this.finishX, gy - 118).setDepth(16);
-    const aura = this.add.circle(0, 0, 74, 0xfff2b8, 0.16);
-    const moon = this.add.circle(0, 0, 42, 0xfff1bd, 0.72);
-    const small = this.add.circle(18, -12, 25, 0xfff8d7, 0.28);
-    const boy = this.add.text(0, 8, '♡', { fontFamily: 'Arial', fontSize: '42px', color: '#fff6da' }).setOrigin(0.5);
-    this.finishMarker.add([aura, moon, small, boy]);
-    this.tweens.add({ targets: this.finishMarker, y: gy - 130, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.finishZone = this.add.zone(this.finishX, gy - 80, 180, 180);
+    // v3.3: keep the finish trigger, moon and extra empty space as separate things.
+    // The player finishes BEFORE the big moon, so the camera can show the moon with breathing room behind it.
+    this.finishX = 4680;
+    this.endMoonX = 5120;
+
+    // Big world-space moon, intentionally not screen-space. This makes the end feel spatial.
+    this.endMoon = this.add.container(this.endMoonX, gy - 300).setDepth(9);
+    const glowA = this.add.circle(0, 0, 170, 0xfff1bd, 0.07);
+    const glowB = this.add.circle(0, 0, 118, 0xfff1bd, 0.13);
+    const moon = this.add.circle(0, 0, 76, 0xfff1bd, 0.86);
+    const crescentCut = this.add.circle(30, -18, 66, 0x122a60, 0.30);
+    const sparkle = this.add.text(-122, -88, '✦', { fontFamily: 'Arial', fontSize: '30px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.8);
+    this.endMoon.add([glowA, glowB, moon, crescentCut, sparkle]);
+    this.tweens.add({ targets: this.endMoon, y: gy - 318, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    // Small warm destination marker for Amber, placed before the moon.
+    this.finishMarker = this.add.container(this.finishX, gy - 108).setDepth(16);
+    const aura = this.add.circle(0, 0, 70, 0xfff2b8, 0.14);
+    const portal = this.add.circle(0, 0, 38, 0xfff1bd, 0.38);
+    const boy = this.add.text(0, 7, '♡', { fontFamily: 'Arial', fontSize: '40px', color: '#fff6da' }).setOrigin(0.5);
+    this.finishMarker.add([aura, portal, boy]);
+    this.tweens.add({ targets: this.finishMarker, y: gy - 120, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    this.finishZone = this.add.zone(this.finishX, gy - 80, 190, 190);
     this.physics.add.existing(this.finishZone, true);
   }
 
@@ -348,11 +364,11 @@ class LevelScene extends Phaser.Scene {
     this.currentSpeed = 0;
     this.cameras.main.stopFollow();
 
-    // v3.1 fix: the moon payoff must always be visible on mobile landscape.
-    // The previous moon lived in world space near the far right, which could end up
-    // outside the visible camera window. This payoff moon is placed directly inside
-    // the current camera view, independent of the level-end position.
-    this.showGuaranteedMoonPayoff();
+    // v3.3: compose the ending camera in world-space.
+    // Amber stays left/middle, the moon sits clearly in view, and there is still visible space behind it.
+    const max = Math.max(0, window.FTTM.GameSettings.worldWidth - this.visibleW);
+    const targetScroll = Phaser.Math.Clamp(this.finishX - this.visibleW * 0.34, 0, max);
+    this.tweens.add({ targets: this.cameras.main, scrollX: targetScroll, duration: 550, ease: 'Sine.easeInOut' });
 
     this.setMessage('A little closer to the moon.', 2800);
     this.time.delayedCall(900, () => {
@@ -473,8 +489,9 @@ class LevelScene extends Phaser.Scene {
 
     // End-camera fix: near the moon approach, stop forcing Amber so far left.
     // This prevents the camera from feeling hard-locked before the end reveal.
-    if (this.finishX && this.player.x > this.finishX - 620) {
-      anchor = this.isPortrait ? 0.46 : 0.42;
+    if (this.finishX && this.player.x > this.finishX - 900) {
+      // Let the camera continue scrolling through the end meadow instead of locking at the old edge.
+      anchor = this.isPortrait ? 0.38 : 0.34;
     }
 
     let desired = this.player.x - this.visibleW * anchor;
