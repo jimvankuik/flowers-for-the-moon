@@ -91,8 +91,11 @@ class LevelScene extends Phaser.Scene {
     }
 
     // Moon is visible early, but the big moon payoff is at the end.
-    this.add.circle(3280, 145, 58, 0xfff4bd, 0.30).setScrollFactor(0.45).setDepth(-1);
-    this.add.circle(3295, 132, 44, 0xfff8d6, 0.20).setScrollFactor(0.45).setDepth(-1);
+    // Distant moon is placed near the actual end-route, not before it.
+    // In earlier prototypes it sat around the old level end, which made the
+    // camera appear to stop before the real moon moment on landscape.
+    this.add.circle(4300, 135, 70, 0xfff4bd, 0.34).setScrollFactor(0.62).setDepth(-1);
+    this.add.circle(4322, 116, 52, 0xfff8d6, 0.22).setScrollFactor(0.62).setDepth(-1);
   }
 
   createOrganicRoute() {
@@ -101,19 +104,20 @@ class LevelScene extends Phaser.Scene {
     const gy = this.groundY;
 
     // Clean rebuild: broad walking hills, not a chain of old floating test platforms.
-    this.addGround(0, gy, 760, 'meadow');                // opening field
-    this.addGround(760, gy - 26, 700, 'gentle-hill');    // soft rise
-    this.addGround(1460, gy - 58, 540, 'quiet');         // bench/apple area
-    this.addGround(2000, gy - 42, 520, 'wind');          // wind clearing
-    this.addGround(2520, gy - 20, 540, 'stones');        // two small jumps
-    this.addGround(3060, gy - 70, 780, 'moon-hill');     // final hill
+    this.addGround(0, gy, 760, 'meadow');                 // opening field
+    this.addGround(760, gy - 26, 700, 'gentle-hill');     // soft rise
+    this.addGround(1460, gy - 58, 540, 'quiet');          // bench/apple area
+    this.addGround(2000, gy - 42, 520, 'wind');           // wind clearing
+    this.addGround(2520, gy - 20, 560, 'stones');         // two small jumps
+    this.addGround(3080, gy - 56, 560, 'meadow');         // breathing space before final
+    this.addGround(3640, gy - 78, 980, 'moon-hill');      // final hill and moon approach
 
     // Only two small, optional-feeling stepping stones to test light platforming.
     this.addSoftPlatform(2310, gy - 128, 170, 24, 0x80b96f);
     this.addSoftPlatform(2525, gy - 168, 190, 24, 0x80b96f);
 
     // Checkpoints just before each meaningful area.
-    [[130, gy - 60], [1160, gy - 90], [2100, gy - 74], [3040, gy - 104]].forEach(p => {
+    [[130, gy - 60], [1160, gy - 90], [2100, gy - 74], [3040, gy - 92], [3820, gy - 112]].forEach(p => {
       const z = this.add.zone(p[0], p[1], 120, 160);
       this.physics.add.existing(z, true);
       z.setData('spawnX', p[0]);
@@ -234,7 +238,7 @@ class LevelScene extends Phaser.Scene {
     const data = [
       [710, gy - 120],       // after opening field
       [2195, gy - 154],      // wind moment
-      [3360, gy - 170]       // final hill reveal
+      [3560, gy - 180]       // final fluff before the moon, not behind it
     ];
     data.forEach((p, idx) => {
       const f = this.add.container(p[0], p[1]).setDepth(20);
@@ -272,7 +276,7 @@ class LevelScene extends Phaser.Scene {
 
   createFinishArea() {
     const gy = this.groundY;
-    this.finishX = 3630;
+    this.finishX = 4300;
     this.finishMarker = this.add.container(this.finishX, gy - 118).setDepth(16);
     const aura = this.add.circle(0, 0, 74, 0xfff2b8, 0.16);
     const moon = this.add.circle(0, 0, 42, 0xfff1bd, 0.72);
@@ -466,6 +470,12 @@ class LevelScene extends Phaser.Scene {
     let anchor = this.isPortrait ? 0.30 : 0.26;
     if (speed > 35) anchor = this.isPortrait ? 0.20 : 0.22;
     if (speed < -35) anchor = this.isPortrait ? 0.50 : 0.45;
+
+    // End-camera fix: near the moon approach, stop forcing Amber so far left.
+    // This prevents the camera from feeling hard-locked before the end reveal.
+    if (this.finishX && this.player.x > this.finishX - 620) {
+      anchor = this.isPortrait ? 0.46 : 0.42;
+    }
 
     let desired = this.player.x - this.visibleW * anchor;
     desired = Phaser.Math.Clamp(desired, 0, max);
