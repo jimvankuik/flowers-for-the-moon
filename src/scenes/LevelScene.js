@@ -278,7 +278,7 @@ class LevelScene extends Phaser.Scene {
   createFinishArea() {
     const gy = this.groundY;
 
-    // v3.3: keep the finish trigger, moon and extra empty space as separate things.
+    // v3.4: keep the finish trigger, moon and extra empty space as separate things.
     // The player finishes BEFORE the big moon, so the camera can show the moon with breathing room behind it.
     this.finishX = 4680;
     this.endMoonX = 5120;
@@ -364,11 +364,10 @@ class LevelScene extends Phaser.Scene {
     this.currentSpeed = 0;
     this.cameras.main.stopFollow();
 
-    // v3.3: compose the ending camera in world-space.
-    // Amber stays left/middle, the moon sits clearly in view, and there is still visible space behind it.
-    const max = Math.max(0, window.FTTM.GameSettings.worldWidth - this.visibleW);
-    const targetScroll = Phaser.Math.Clamp(this.finishX - this.visibleW * 0.34, 0, max);
-    this.tweens.add({ targets: this.cameras.main, scrollX: targetScroll, duration: 550, ease: 'Sine.easeInOut' });
+    // v3.4: do NOT tween/recompose the camera at the finish.
+    // The camera should feel like it simply arrives here naturally.
+    // The moon position and extra world space now create the end shot without a camera snap.
+    this.cameraTargetX = this.cameras.main.scrollX;
 
     this.setMessage('A little closer to the moon.', 2800);
     this.time.delayedCall(900, () => {
@@ -487,12 +486,10 @@ class LevelScene extends Phaser.Scene {
     if (speed > 35) anchor = this.isPortrait ? 0.20 : 0.22;
     if (speed < -35) anchor = this.isPortrait ? 0.50 : 0.45;
 
-    // End-camera fix: near the moon approach, stop forcing Amber so far left.
-    // This prevents the camera from feeling hard-locked before the end reveal.
-    if (this.finishX && this.player.x > this.finishX - 900) {
-      // Let the camera continue scrolling through the end meadow instead of locking at the old edge.
-      anchor = this.isPortrait ? 0.38 : 0.34;
-    }
+    // v3.4: keep one continuous camera anchor all the way to the finish.
+    // Previous versions changed the anchor near the endpoint, which caused a visible
+    // repositioning/snap to the right. The end composition is now solved by world
+    // placement instead of changing camera behavior.
 
     let desired = this.player.x - this.visibleW * anchor;
     desired = Phaser.Math.Clamp(desired, 0, max);
