@@ -2,7 +2,7 @@ class LevelScene extends Phaser.Scene {
   constructor() {
     super('LevelScene');
     this.collected = 0;
-    this.totalFluffs = 3;
+    this.totalFluffs = 1;
     this.currentSpeed = 0;
     this.jumpCount = 0;
     this.maxJumps = 2;
@@ -12,7 +12,8 @@ class LevelScene extends Phaser.Scene {
     this.facing = 1;
     this.lastDoAt = 0;
     this.finished = false;
-    this.activeCheckpoint = { x: 140, y: 0 };
+    this.inputLocked = true;
+    this.activeCheckpoint = { x: 230, y: 0 };
   }
 
   create() {
@@ -25,8 +26,7 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // Landscape-first: ground sits high enough above mobile controls.
-    this.groundY = this.isPortrait ? this.visibleH - 165 : this.visibleH - 150;
+    this.groundY = this.isPortrait ? this.visibleH - 165 : this.visibleH - 148;
     this.worldBottom = this.visibleH + 260;
 
     this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
@@ -35,24 +35,28 @@ class LevelScene extends Phaser.Scene {
 
     if (window.FTTM.hideFinishPanel) window.FTTM.hideFinishPanel();
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFluffs);
-    this.setMessage('The moon is waiting.', 2800);
 
     this.drawSky();
-    this.createOrganicRoute();
+    this.createLandscapeFromScratch();
+    this.createHomeAndGarden();
+    this.createLakeScene();
+    this.createParkScene();
+    this.createSideArea();
+    this.createMoonRevealArea();
     this.createAtmosphere();
-    this.createStoryObjects();
     this.createPlayer();
-    this.createMoonFluffs();
-    this.createPlantCollectibles();
-    this.createFinishArea();
+    this.createCollectibles();
+    this.createInteractionZones();
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.overlap(this.player, this.fluffs, this.collectMoonFluff, null, this);
     this.physics.add.overlap(this.player, this.plants, this.collectPlant, null, this);
     this.physics.add.overlap(this.player, this.checkpoints, this.touchCheckpoint, null, this);
     this.physics.add.overlap(this.player, this.finishZone, this.tryFinish, null, this);
+    this.physics.add.overlap(this.player, this.moonRevealZone, this.triggerMoonReveal, null, this);
 
     this.updateCamera(true);
+    this.startIntroSequence();
     this.scale.on('resize', () => { if (!this.finished) this.scene.restart(); });
   }
 
@@ -65,159 +69,260 @@ class LevelScene extends Phaser.Scene {
     this.messageTimeout = setTimeout(() => el.classList.add('hidden'), duration);
   }
 
-  drawSky() {
-    const s = window.FTTM.GameSettings;
-    this.add.rectangle(s.worldWidth / 2, this.visibleH / 2, s.worldWidth, this.visibleH, 0x122a60).setScrollFactor(1);
-
-    // Soft depth layers.
-    this.add.rectangle(s.worldWidth / 2, this.groundY + 98, s.worldWidth, 210, 0x091637).setDepth(-3);
-    for (let i = 0; i < 130; i++) {
-      const star = this.add.circle(
-        Phaser.Math.Between(0, s.worldWidth),
-        Phaser.Math.Between(22, Math.max(80, this.groundY - 90)),
-        Phaser.Math.FloatBetween(0.8, 2.0),
-        0xffffff,
-        Phaser.Math.FloatBetween(0.18, 0.66)
-      );
-      star.setScrollFactor(0.25);
-      this.tweens.add({ targets: star, alpha: star.alpha * 0.45, duration: Phaser.Math.Between(1200, 2600), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-
-    for (const c of [
-      [580, 130, 240, 38], [1160, 190, 310, 46], [1880, 110, 260, 36], [2860, 170, 360, 50]
-    ]) {
-      this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.055).setScrollFactor(0.18);
-      this.add.ellipse(c[0] + 70, c[1] + 16, c[2] * 0.68, c[3] * 0.75, 0xffffff, 0.04).setScrollFactor(0.18);
-    }
-
-    // Moon is visible early, but the big moon payoff is at the end.
-    // Distant moon is placed near the actual end-route, not before it.
-    // In earlier prototypes it sat around the old level end, which made the
-    // camera appear to stop before the real moon moment on landscape.
-    // Soft distant moon hint near the final area. The real end moon is created in createFinishArea.
-    this.add.circle(5200, 125, 78, 0xfff4bd, 0.24).setScrollFactor(0.72).setDepth(-1);
-    this.add.circle(5224, 106, 58, 0xfff8d6, 0.15).setScrollFactor(0.72).setDepth(-1);
+  startIntroSequence() {
+    this.setMessage('Amber hears a soft sound.', 2200);
+    const sound = this.add.text(150, this.groundY - 260, '♪', { fontFamily: 'Arial', fontSize: '34px', color: '#fff7c8' }).setOrigin(0.5).setDepth(60);
+    this.tweens.add({ targets: sound, x: sound.x + 110, y: sound.y - 42, alpha: 0, scale: 1.5, duration: 1500, ease: 'Sine.easeOut', onComplete: () => sound.destroy() });
+    this.time.delayedCall(1350, () => {
+      this.inputLocked = false;
+      this.setMessage('The garden is awake.', 2100);
+    });
   }
 
-  createOrganicRoute() {
+  drawSky() {
+    const s = window.FTTM.GameSettings;
+    this.add.rectangle(s.worldWidth / 2, this.visibleH / 2, s.worldWidth, this.visibleH, 0x122a60).setScrollFactor(1).setDepth(-20);
+    this.add.rectangle(s.worldWidth / 2, this.groundY + 105, s.worldWidth, 230, 0x081633).setDepth(-18);
+
+    // Stars and soft sky particles.
+    for (let i = 0; i < 95; i++) {
+      const star = this.add.circle(
+        Phaser.Math.Between(0, s.worldWidth),
+        Phaser.Math.Between(26, Math.max(80, this.groundY - 120)),
+        Phaser.Math.FloatBetween(0.7, 1.8),
+        0xffffff,
+        Phaser.Math.FloatBetween(0.16, 0.56)
+      ).setScrollFactor(0.35).setDepth(-14);
+      this.tweens.add({ targets: star, alpha: star.alpha * 0.42, duration: Phaser.Math.Between(1300, 2800), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+
+    // Rainbow near the lake: soft, distant background object.
+    this.rainbow = this.add.graphics().setDepth(-10).setScrollFactor(0.55);
+    const rx = 1620, ry = this.groundY - 60;
+    const colors = [0xff8fa3, 0xffd38e, 0xfff6a3, 0xbef7a1, 0x9bd5ff, 0xc9a6ff];
+    colors.forEach((c, i) => {
+      this.rainbow.lineStyle(8, c, 0.28);
+      this.rainbow.beginPath();
+      this.rainbow.arc(rx, ry, 250 - i * 14, Math.PI, Math.PI * 2, false);
+      this.rainbow.strokePath();
+    });
+
+    // Moon reveal is hidden behind clouds at first.
+    this.revealMoon = this.add.container(4250, this.groundY - 330).setDepth(-4);
+    this.revealMoon.setAlpha(0);
+    this.revealMoon.add(this.add.circle(0, 0, 112, 0xffefb8, 0.11));
+    this.revealMoon.add(this.add.circle(0, 0, 74, 0xffefb8, 0.88));
+    this.revealMoon.add(this.add.circle(28, -16, 60, 0x122a60, 0.34));
+    this.moonClouds = [];
+    for (const c of [[4205, this.groundY - 335, 180, 42], [4300, this.groundY - 305, 230, 50], [4120, this.groundY - 292, 160, 38]]) {
+      const cloud = this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.10).setDepth(-3).setScrollFactor(0.85);
+      this.moonClouds.push(cloud);
+    }
+  }
+
+  createLandscapeFromScratch() {
     this.platforms = this.physics.add.staticGroup();
     this.checkpoints = this.physics.add.staticGroup();
     const gy = this.groundY;
 
-    // Clean rebuild: broad walking hills, not a chain of old floating test platforms.
-    this.addGround(0, gy, 760, 'meadow');                 // opening field
-    this.addGround(760, gy - 26, 700, 'gentle-hill');     // soft rise
-    this.addGround(1460, gy - 58, 540, 'quiet');          // bench/apple area
-    this.addGround(2000, gy - 42, 520, 'wind');           // wind clearing
-    this.addGround(2520, gy - 20, 560, 'stones');         // two small jumps
-    this.addGround(3080, gy - 56, 560, 'meadow');         // breathing space before final
-    this.addGround(3640, gy - 78, 1780, 'moon-hill');     // spacious final hill and moon approach
+    // A new route, built as a place: home hill -> flower garden -> down to lake -> tree climb -> up to park -> side area -> moon reveal.
+    this.addGroundSegment(0, gy - 96, 540, 0x6da96e, 'home hill');
+    this.addGroundSegment(540, gy - 82, 440, 0x72ad72, 'flower garden');
+    this.addGroundSegment(980, gy - 42, 500, 0x68a46c, 'gentle slope down');
+    this.addGroundSegment(1480, gy - 10, 620, 0x5e9668, 'lake shore');
+    this.addGroundSegment(2100, gy - 44, 520, 0x6aa66d, 'hill up');
+    this.addGroundSegment(2620, gy - 86, 820, 0x637f68, 'little park');
+    this.addGroundSegment(3440, gy - 68, 520, 0x697f65, 'park exit');
+    this.addGroundSegment(3960, gy - 92, 960, 0x6ca76e, 'moon reveal hill');
 
-    // Only two small, optional-feeling stepping stones to test light platforming.
-    this.addSoftPlatform(2310, gy - 128, 170, 24, 0x80b96f);
-    this.addSoftPlatform(2525, gy - 168, 190, 24, 0x80b96f);
+    // Very small tree climb. This is not a hard platform sequence, just a playful reach for the first Moon Fluff.
+    this.addSoftBranch(1770, gy - 165, 150, 20);
+    this.addSoftBranch(1870, gy - 235, 160, 20);
 
-    // Checkpoints just before each meaningful area.
-    [[130, gy - 60], [1160, gy - 90], [2100, gy - 74], [3040, gy - 92], [3820, gy - 112]].forEach(p => {
-      const z = this.add.zone(p[0], p[1], 120, 160);
-      this.physics.add.existing(z, true);
-      z.setData('spawnX', p[0]);
-      z.setData('spawnY', p[1] - 34);
-      this.checkpoints.add(z);
-    });
+    // A tiny side-area path under/behind park shrubs.
+    this.addGroundSegment(3050, gy + 26, 410, 0x4f835d, 'hidden lower path');
+
+    // Invisible checkpoints.
+    this.addCheckpoint(230, gy - 168);
+    this.addCheckpoint(1130, gy - 112);
+    this.addCheckpoint(1670, gy - 80);
+    this.addCheckpoint(2420, gy - 116);
+    this.addCheckpoint(3180, gy - 56);
+    this.addCheckpoint(4040, gy - 162);
   }
 
-  addGround(x, y, w, type) {
+  addGroundSegment(x, topY, w, color, label) {
     const h = 44;
-    const collider = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0);
+    const collider = this.add.rectangle(x + w / 2, topY + h / 2, w, h, 0x000000, 0);
     this.physics.add.existing(collider, true);
     this.platforms.add(collider);
 
-    // Organic landscape visuals: large overlapping ellipses, flowers on top.
-    const baseColors = { meadow: 0x5d9a69, 'gentle-hill': 0x69a66f, quiet: 0x628f64, wind: 0x6aaa77, stones: 0x5f9668, 'moon-hill': 0x6ca76e };
-    const color = baseColors[type] || 0x639a68;
-    this.add.rectangle(x + w / 2, y + 30, w, 92, color, 1).setDepth(0);
-    this.add.ellipse(x + w * 0.25, y + 50, w * 0.58, 150, 0x274f43, 0.35).setDepth(-1);
-    this.add.ellipse(x + w * 0.75, y + 54, w * 0.52, 132, 0x1f463f, 0.30).setDepth(-1);
-    this.add.rectangle(x + w / 2, y + 2, w, 9, 0xc7ef89, 0.95).setDepth(2);
+    // Still prototype geometry, but visually treated as flowing land instead of old block platforms.
+    this.add.rectangle(x + w / 2, topY + 36, w, 96, color, 1).setDepth(0);
+    this.add.rectangle(x + w / 2, topY + 3, w, 10, 0xc7ef8c, 0.98).setDepth(4);
+    this.add.ellipse(x + w * 0.25, topY + 54, w * 0.62, 132, 0x234941, 0.26).setDepth(-1);
+    this.add.ellipse(x + w * 0.75, topY + 58, w * 0.58, 142, 0x1e403a, 0.22).setDepth(-1);
 
-    for (let i = 0; i < Math.floor(w / 42); i++) {
-      const px = x + 18 + i * 42 + Phaser.Math.Between(-10, 10);
-      const stemH = Phaser.Math.Between(18, 42);
-      const c = Phaser.Display.Color.ValueToColor(Phaser.Math.RND.pick([0xffd4ec, 0xe7e3ff, 0xf4f7af, 0xc3dbff]));
-      this.add.rectangle(px, y - stemH / 2, 3, stemH, 0x83c56b, 0.8).setDepth(4);
-      this.add.circle(px, y - stemH, Phaser.Math.Between(3, 5), c.color, 0.9).setDepth(5);
+    if (label) {
+      const t = this.add.text(x + 14, topY + 58, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setAlpha(0); // label hidden; useful placeholder only.
+      t.setData('label', label);
     }
   }
 
-  addSoftPlatform(x, y, w, h, color) {
-    const visual = this.add.rectangle(x + w / 2, y + h / 2, w, h, color, 1).setDepth(3);
-    visual.setStrokeStyle(4, 0xcaf28d, 0.9);
-    this.add.ellipse(x + w / 2, y + h + 15, w * 0.92, 34, 0x244943, 0.24).setDepth(1);
-    this.physics.add.existing(visual, true);
-    this.platforms.add(visual);
+  addSoftBranch(x, y, w, h) {
+    const branch = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x9a7040, 1).setDepth(14);
+    branch.setStrokeStyle(3, 0xc7924e, 0.75);
+    this.physics.add.existing(branch, true);
+    this.platforms.add(branch);
+  }
+
+  addCheckpoint(x, y) {
+    const zone = this.add.zone(x, y, 150, 180);
+    this.physics.add.existing(zone, true);
+    zone.setData('spawnX', x);
+    zone.setData('spawnY', y - 34);
+    this.checkpoints.add(zone);
+  }
+
+  createHomeAndGarden() {
+    const gy = this.groundY;
+
+    // Amber's house: warm, readable, two floors, chimney.
+    this.house = this.add.container(255, gy - 270).setDepth(10);
+    this.house.add(this.add.rectangle(0, 90, 175, 150, 0xf5d29b, 1));
+    this.house.add(this.add.triangle(0, -10, -105, 70, 105, 70, 0, -80, 0xd0726c));
+    this.house.add(this.add.rectangle(60, -44, 28, 72, 0x875b45, 1));
+    this.house.add(this.add.rectangle(0, 152, 42, 76, 0x8a5a3c, 1));
+    this.house.add(this.add.circle(14, 152, 3, 0xffefaa, 1));
+    this.house.add(this.add.rectangle(-48, 70, 36, 34, 0x9bd7ff, 0.88));
+    this.house.add(this.add.rectangle(46, 70, 36, 34, 0x9bd7ff, 0.88));
+    this.house.add(this.add.rectangle(-48, 18, 34, 30, 0x9bd7ff, 0.78));
+    this.house.add(this.add.rectangle(46, 18, 34, 30, 0x9bd7ff, 0.78));
+    this.house.add(this.add.rectangle(60, -86, 36, 18, 0xb0bfd6, 0.45));
+
+    // Little smoke puffs.
+    for (let i = 0; i < 4; i++) {
+      const puff = this.add.circle(318 + i * 18, gy - 390 - i * 18, 13 + i * 3, 0xffffff, 0.10).setDepth(9);
+      this.tweens.add({ targets: puff, y: puff.y - 28, x: puff.x + 14, alpha: 0.02, duration: 2600 + i * 400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+
+    // Garden fence and flowers that react when Amber walks through them.
+    this.gardenFlowers = [];
+    for (let i = 0; i < 18; i++) {
+      const x = 590 + i * 22;
+      const y = gy - 105 - Phaser.Math.Between(0, 20);
+      const stem = this.add.rectangle(x, y + 18, 3, 36, 0x7fc46a, 0.92).setDepth(9);
+      const bloom = this.add.circle(x, y, Phaser.Math.Between(5, 8), Phaser.Math.RND.pick([0xffc9e8, 0xe1d4ff, 0xfff0a6, 0xbee9ff]), 0.94).setDepth(11);
+      const flower = this.add.container(0, 0, [stem, bloom]);
+      flower.setData('baseX', x);
+      flower.setData('baseY', y);
+      this.gardenFlowers.push(flower);
+    }
+    for (let i = 0; i < 7; i++) {
+      this.add.rectangle(560 + i * 64, gy - 93, 7, 64, 0xd7bd86, 0.9).setDepth(8);
+      this.add.rectangle(560 + i * 64, gy - 118, 52, 7, 0xd7bd86, 0.82).setDepth(8);
+    }
+  }
+
+  createLakeScene() {
+    const gy = this.groundY;
+    // Lake below the route.
+    this.lake = this.add.ellipse(1590, gy + 56, 420, 82, 0x70b8cf, 0.50).setDepth(3);
+    this.add.ellipse(1590, gy + 62, 350, 44, 0xa7e2eb, 0.28).setDepth(4);
+    for (let i = 0; i < 10; i++) {
+      const reed = this.add.rectangle(1390 + i * 36, gy + 26, 4, Phaser.Math.Between(38, 70), 0x8dcc75, 0.84).setOrigin(0.5, 1).setDepth(7);
+      this.tweens.add({ targets: reed, angle: Phaser.Math.Between(-8, 8), duration: Phaser.Math.Between(900, 1700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+    this.frog = this.add.text(1510, gy + 10, '🐸', { fontSize: '28px' }).setDepth(12).setAlpha(0.88);
+    this.tweens.add({ targets: this.frog, y: gy - 8, duration: 500, yoyo: true, repeat: -1, repeatDelay: 2600, ease: 'Sine.easeOut' });
+
+    this.drawBench(1665, gy - 48);
+    this.drawClimbTree(1850, gy - 235);
+  }
+
+  drawBench(x, y) {
+    this.add.rectangle(x, y, 96, 12, 0x8b5a3b).setDepth(15);
+    this.add.rectangle(x, y - 22, 100, 10, 0x9a6542).setDepth(15);
+    this.add.rectangle(x - 36, y + 25, 9, 50, 0x5a3a2a).setDepth(14);
+    this.add.rectangle(x + 36, y + 25, 9, 50, 0x5a3a2a).setDepth(14);
+  }
+
+  drawClimbTree(x, y) {
+    this.add.rectangle(x, y + 145, 34, 260, 0x7d5637).setDepth(9);
+    this.add.circle(x - 52, y + 45, 74, 0x4d925c).setDepth(10);
+    this.add.circle(x + 30, y + 18, 90, 0x58a363).setDepth(10);
+    this.add.circle(x + 92, y + 70, 58, 0x4d925c).setDepth(10);
+    for (const a of [[x - 30, y + 22], [x + 28, y - 8], [x + 75, y + 76]]) {
+      this.add.circle(a[0], a[1], 7, 0xff6b6b).setDepth(16);
+    }
+  }
+
+  createParkScene() {
+    const gy = this.groundY;
+    // Park fixtures: not gameplay obstacles, just identity.
+    for (const x of [2740, 3040, 3330]) this.drawLampPost(x, gy - 150);
+    for (const x of [2820, 3270]) this.drawBench(x, gy - 124);
+    for (const x of [2920, 3410]) this.drawTrashBin(x, gy - 112);
+
+    // Birds eating crumbs along the park path.
+    for (const x of [2730, 2875, 3150, 3360]) {
+      const bird = this.add.text(x, gy - 126, '🐦', { fontSize: '25px' }).setDepth(16).setAlpha(0.9);
+      this.tweens.add({ targets: bird, x: x + Phaser.Math.Between(-16, 22), duration: Phaser.Math.Between(900, 1500), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.add.circle(x + 18, gy - 104, 3, 0xf6d38d, 0.75).setDepth(15);
+    }
+  }
+
+  drawLampPost(x, y) {
+    this.add.rectangle(x, y + 64, 9, 128, 0x40455d).setDepth(13);
+    this.add.circle(x, y - 6, 25, 0xfff2b8, 0.18).setDepth(12);
+    this.add.circle(x, y - 6, 12, 0xfff2b8, 0.86).setDepth(15);
+  }
+
+  drawTrashBin(x, y) {
+    this.add.rectangle(x, y + 20, 34, 44, 0x3c6b62, 1).setDepth(14);
+    this.add.rectangle(x, y - 4, 42, 8, 0x2f514d, 1).setDepth(15);
+  }
+
+  createSideArea() {
+    const gy = this.groundY;
+    // Hidden nature corner below the park, hinted by shrubs and birds.
+    for (let i = 0; i < 10; i++) {
+      this.add.circle(3060 + i * 34, gy - 54 + Phaser.Math.Between(-10, 10), Phaser.Math.Between(18, 28), 0x416f4e, 0.92).setDepth(18);
+    }
+    this.add.text(3130, gy - 82, 'ʚɞ', { fontFamily: 'Arial', fontSize: '24px', color: '#d8c7ff' }).setOrigin(0.5).setDepth(20);
+    this.add.text(3300, gy + 2, 'verborgen hoekje', { fontFamily: 'Arial', fontSize: '18px', color: '#dbeebc' }).setOrigin(0.5).setAlpha(0.0);
+  }
+
+  createMoonRevealArea() {
+    const gy = this.groundY;
+    this.moonRevealZone = this.add.zone(3940, gy - 175, 240, 240);
+    this.physics.add.existing(this.moonRevealZone, true);
+    this.moonRevealed = false;
+
+    this.finishZone = this.add.zone(4660, gy - 155, 200, 220);
+    this.physics.add.existing(this.finishZone, true);
+    this.finishMarker = this.add.container(4660, gy - 168).setDepth(16);
+    this.finishMarker.add(this.add.circle(0, 0, 42, 0xfff2b8, 0.11));
+    this.finishMarker.add(this.add.text(0, 0, '✧', { fontFamily: 'Arial', fontSize: '34px', color: '#fff6da' }).setOrigin(0.5).setAlpha(0.58));
+    this.tweens.add({ targets: this.finishMarker, alpha: 0.48, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   createAtmosphere() {
     const s = window.FTTM.GameSettings;
-    // Floating fluff and fireflies.
     for (let i = 0; i < 70; i++) {
-      const p = this.add.circle(Phaser.Math.Between(0, s.worldWidth), Phaser.Math.Between(110, this.groundY - 20), Phaser.Math.FloatBetween(1.4, 3.2), 0xffffff, Phaser.Math.FloatBetween(0.18, 0.55)).setDepth(8);
-      this.tweens.add({ targets: p, x: p.x + Phaser.Math.Between(-28, 46), y: p.y + Phaser.Math.Between(-18, 18), duration: Phaser.Math.Between(2200, 5200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const p = this.add.circle(Phaser.Math.Between(0, s.worldWidth), Phaser.Math.Between(120, this.groundY - 20), Phaser.Math.FloatBetween(1.2, 2.8), 0xffffff, Phaser.Math.FloatBetween(0.13, 0.42)).setDepth(7);
+      this.tweens.add({ targets: p, x: p.x + Phaser.Math.Between(-30, 48), y: p.y + Phaser.Math.Between(-18, 18), duration: Phaser.Math.Between(2300, 5200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
-
-    // Friendly insects/animals as pure atmosphere.
-    for (const b of [[410, -120], [980, -90], [1660, -118], [2140, -155], [2980, -110]]) {
-      const butterfly = this.add.text(b[0], this.groundY + b[1], 'ʚɞ', { fontFamily: 'Arial', fontSize: '28px', color: '#ffd7ef' }).setOrigin(0.5).setDepth(12);
-      this.tweens.add({ targets: butterfly, y: butterfly.y - 22, x: butterfly.x + 55, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-    this.add.text(3380, this.groundY - 125, '🐇', { fontSize: '28px' }).setDepth(8).setAlpha(0.8);
-  }
-
-  createStoryObjects() {
-    const gy = this.groundY;
-    // Bench and apple tree fully above controls.
-    this.drawBench(1570, gy - 58);
-    this.drawAppleTree(1730, gy - 118);
-    this.drawWindReeds(2050, gy - 50);
-    this.drawWindReeds(2180, gy - 50);
-    this.drawWindReeds(2260, gy - 50);
-
-    // Gentle interaction zones.
-    this.benchZone = this.add.zone(1570, gy - 88, 150, 110);
-    this.physics.add.existing(this.benchZone, true);
-    this.appleZone = this.add.zone(1730, gy - 92, 170, 150);
-    this.physics.add.existing(this.appleZone, true);
-  }
-
-  drawBench(x, y) {
-    this.add.rectangle(x, y, 96, 12, 0x8b5a3b).setDepth(10);
-    this.add.rectangle(x, y - 22, 100, 10, 0x9a6542).setDepth(10);
-    this.add.rectangle(x - 36, y + 26, 9, 52, 0x5a3a2a).setDepth(9);
-    this.add.rectangle(x + 36, y + 26, 9, 52, 0x5a3a2a).setDepth(9);
-  }
-
-  drawAppleTree(x, y) {
-    this.add.rectangle(x, y + 68, 26, 132, 0x7b5536).setDepth(7);
-    this.add.circle(x - 34, y + 8, 58, 0x4f965c).setDepth(8);
-    this.add.circle(x + 22, y - 10, 68, 0x5aa465).setDepth(8);
-    this.add.circle(x + 58, y + 28, 48, 0x4f965c).setDepth(8);
-    for (const a of [[x - 18, y - 8], [x + 28, y + 12], [x + 54, y + 42]]) {
-      this.add.circle(a[0], a[1], 7, 0xff6b6b).setDepth(11);
-    }
-  }
-
-  drawWindReeds(x, y) {
-    for (let i = 0; i < 5; i++) {
-      const reed = this.add.rectangle(x + i * 18, y - Phaser.Math.Between(8, 24), 4, Phaser.Math.Between(50, 78), 0xa4d579, 0.85).setDepth(6);
-      reed.setOrigin(0.5, 1);
-      this.tweens.add({ targets: reed, angle: Phaser.Math.Between(-7, 7), duration: Phaser.Math.Between(900, 1500), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // Birds crossing rainbow/lake and park.
+    for (const b of [[1240, this.groundY - 270], [2140, this.groundY - 330], [3780, this.groundY - 300]]) {
+      const bird = this.add.text(b[0], b[1], '⌁', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5).setDepth(5).setAlpha(0.42);
+      this.tweens.add({ targets: bird, x: bird.x + 420, y: bird.y - 20, duration: 5200, repeat: -1, repeatDelay: 1800, ease: 'Sine.easeInOut' });
     }
   }
 
   createPlayer() {
-    this.player = this.add.container(145, this.groundY - 72).setDepth(30);
-    this.activeCheckpoint = { x: 145, y: this.groundY - 72 };
+    this.player = this.add.container(235, this.groundY - 168).setDepth(40);
+    this.activeCheckpoint = { x: 235, y: this.groundY - 168 };
     this.shadow = this.add.ellipse(0, 66, 52, 13, 0x000000, 0.20);
     this.leftFoot = this.add.ellipse(-11, 62, 15, 7, 0xf0a0c3);
     this.rightFoot = this.add.ellipse(11, 62, 15, 7, 0xf0a0c3);
@@ -233,83 +338,70 @@ class LevelScene extends Phaser.Scene {
     this.player.body.setCollideWorldBounds(true);
   }
 
-  createMoonFluffs() {
+  createCollectibles() {
     this.fluffs = this.physics.add.staticGroup();
-    const gy = this.groundY;
-    const data = [
-      [710, gy - 120],       // after opening field
-      [2195, gy - 154],      // wind moment
-      [4140, gy - 180]       // final fluff before the moon approach, clearly before the ending
-    ];
-    data.forEach((p, idx) => {
-      const f = this.add.container(p[0], p[1]).setDepth(20);
-      const glow = this.add.circle(0, 0, 28, 0xfff6b9, 0.20);
-      const core = this.add.circle(0, 0, 12, 0xfffbdb, 0.95);
-      const txt = this.add.text(0, 1, '✦', { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
-      f.add([glow, core, txt]);
-      f.setData('collected', false);
-      this.physics.add.existing(f, true);
-      f.body.setSize(56, 56);
-      f.body.setOffset(-28, -28);
-      this.fluffs.add(f);
-      this.tweens.add({ targets: f, y: p[1] - 14, duration: 1100 + idx * 160, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    });
-  }
-
-  createPlantCollectibles() {
     this.plants = this.physics.add.staticGroup();
-    const gy = this.groundY;
-    const data = [
-      { name: 'Blauwe druifjes gevonden!', x: 1020, y: gy - 58, icon: '♧', color: '#9bb7ff' },
-      { name: 'Blauwe regen gevonden!', x: 1880, y: gy - 90, icon: '❦', color: '#c7b4ff' }
-    ];
-    data.forEach(d => {
-      const p = this.add.container(d.x, d.y).setDepth(18);
-      p.add(this.add.text(0, 0, d.icon, { fontFamily: 'Arial', fontSize: '34px', color: d.color }).setOrigin(0.5));
-      p.setData('plantName', d.name);
-      p.setData('collected', false);
-      this.physics.add.existing(p, true);
-      p.body.setSize(64, 64);
-      p.body.setOffset(-32, -32);
-      this.plants.add(p);
-    });
+
+    // First Moon Fluff in/above the tree near the lake.
+    this.addMoonFluff(1880, this.groundY - 292);
+
+    // First optional plant in the hidden side area.
+    this.addPlant('Blauwe druifjes gevonden!', 3305, this.groundY - 34, '♧', '#9bb7ff');
   }
 
-  createFinishArea() {
+  addMoonFluff(x, y) {
+    const visual = this.add.container(x, y).setDepth(30);
+    visual.add(this.add.circle(0, 0, 30, 0xfff6b9, 0.20));
+    visual.add(this.add.circle(0, 0, 12, 0xfffbdb, 0.95));
+    visual.add(this.add.text(0, 1, '✦', { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff' }).setOrigin(0.5));
+    visual.setData('collected', false);
+    this.physics.add.existing(visual, true);
+    visual.body.setSize(58, 58);
+    visual.body.setOffset(-29, -29);
+    this.fluffs.add(visual);
+    this.tweens.add({ targets: visual, y: y - 14, duration: 1250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  addPlant(name, x, y, icon, color) {
+    const plant = this.add.container(x, y).setDepth(30);
+    plant.add(this.add.text(0, 0, icon, { fontFamily: 'Arial', fontSize: '38px', color }).setOrigin(0.5));
+    plant.setData('plantName', name);
+    plant.setData('collected', false);
+    this.physics.add.existing(plant, true);
+    plant.body.setSize(64, 64);
+    plant.body.setOffset(-32, -32);
+    this.plants.add(plant);
+  }
+
+  createInteractionZones() {
     const gy = this.groundY;
+    this.benchZone = this.add.zone(1665, gy - 80, 160, 110);
+    this.physics.add.existing(this.benchZone, true);
+    this.appleZone = this.add.zone(1850, gy - 160, 220, 280);
+    this.physics.add.existing(this.appleZone, true);
+  }
 
-    // v3.4: keep the finish trigger, moon and extra empty space as separate things.
-    // The player finishes BEFORE the big moon, so the camera can show the moon with breathing room behind it.
-    this.finishX = 4680;
-    this.endMoonX = 5120;
+  updateGardenFlowers() {
+    if (!this.gardenFlowers || !this.player) return;
+    for (const flower of this.gardenFlowers) {
+      const baseX = flower.getData('baseX');
+      const baseY = flower.getData('baseY');
+      const d = Math.abs(this.player.x - baseX);
+      const sway = d < 95 ? (this.player.x < baseX ? 7 : -7) : 0;
+      flower.x = Phaser.Math.Linear(flower.x, sway, 0.18);
+      flower.y = Phaser.Math.Linear(flower.y, d < 95 ? -3 : 0, 0.15);
+      flower.rotation = Phaser.Math.Linear(flower.rotation, sway * 0.018, 0.15);
+    }
+  }
 
-    // Big world-space moon, intentionally not screen-space. This makes the end feel spatial.
-    this.endMoon = this.add.container(this.endMoonX, gy - 300).setDepth(9);
-    const glowA = this.add.circle(0, 0, 170, 0xfff1bd, 0.07);
-    const glowB = this.add.circle(0, 0, 118, 0xfff1bd, 0.13);
-    const moon = this.add.circle(0, 0, 76, 0xfff1bd, 0.86);
-    const crescentCut = this.add.circle(30, -18, 66, 0x122a60, 0.30);
-    const sparkle = this.add.text(-122, -88, '✦', { fontFamily: 'Arial', fontSize: '30px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.8);
-    // The little boy belongs ON the moon, not in a separate portal before it.
-    // Keep him as a child of the moon container so the end animation happens on the moon itself.
-    const boyGlow = this.add.circle(-18, 34, 30, 0xffffff, 0.12);
-    const boyBody = this.add.ellipse(-18, 44, 20, 28, 0xf6d7b8, 0.95);
-    const boyHead = this.add.circle(-18, 24, 13, 0xffdfc4, 1);
-    const boyHair = this.add.ellipse(-18, 15, 26, 12, 0xf4c66a, 0.95);
-    const boyHeart = this.add.text(-18, 1, '♡', { fontFamily: 'Arial', fontSize: '20px', color: '#fffaf0' }).setOrigin(0.5);
-    this.endMoon.add([glowA, glowB, moon, crescentCut, sparkle, boyGlow, boyBody, boyHead, boyHair, boyHeart]);
-    this.tweens.add({ targets: this.endMoon, y: gy - 318, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-    // Ground-level destination marker for gameplay only. It is intentionally subtle;
-    // the emotional focus should be the boy sitting on the moon.
-    this.finishMarker = this.add.container(this.finishX, gy - 92).setDepth(16);
-    const aura = this.add.circle(0, 0, 44, 0xfff2b8, 0.10);
-    const sparkleMarker = this.add.text(0, 0, '✧', { fontFamily: 'Arial', fontSize: '32px', color: '#fff6da' }).setOrigin(0.5).setAlpha(0.58);
-    this.finishMarker.add([aura, sparkleMarker]);
-    this.tweens.add({ targets: this.finishMarker, alpha: 0.45, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-    this.finishZone = this.add.zone(this.finishX, gy - 80, 190, 190);
-    this.physics.add.existing(this.finishZone, true);
+  triggerMoonReveal() {
+    if (this.moonRevealed) return;
+    this.moonRevealed = true;
+    this.setMessage('The clouds are moving.', 2400);
+    this.tweens.add({ targets: this.revealMoon, alpha: 1, duration: 1200, ease: 'Sine.easeInOut' });
+    this.moonClouds.forEach((c, i) => {
+      this.tweens.add({ targets: c, x: c.x + 210 + i * 70, alpha: 0.02, duration: 1800 + i * 260, ease: 'Sine.easeInOut' });
+    });
   }
 
   collectMoonFluff(player, fluff) {
@@ -318,17 +410,16 @@ class LevelScene extends Phaser.Scene {
     if (fluff.body) fluff.body.enable = false;
     this.collected += 1;
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(this.collected, this.totalFluffs);
-    this.tweens.add({ targets: fluff, y: fluff.y - 34, scale: 1.35, alpha: 0, duration: 320, ease: 'Sine.easeOut', onComplete: () => fluff.destroy() });
-    if (this.collected === 1) this.setMessage('The wind carries it upward.', 2300);
-    if (this.collected === 2) this.setMessage('A little closer.', 2100);
+    this.setMessage('You found the first moon fluff.', 2300);
+    this.tweens.add({ targets: fluff, y: fluff.y - 34, scale: 1.35, alpha: 0, duration: 340, ease: 'Sine.easeOut', onComplete: () => fluff.destroy() });
   }
 
   collectPlant(player, plant) {
     if (!plant || plant.getData('collected')) return;
     plant.setData('collected', true);
     if (plant.body) plant.body.enable = false;
-    this.setMessage(plant.getData('plantName'), 2000);
-    this.tweens.add({ targets: plant, y: plant.y - 20, alpha: 0, scale: 1.25, duration: 320, onComplete: () => plant.destroy() });
+    this.setMessage(plant.getData('plantName'), 2100);
+    this.tweens.add({ targets: plant, y: plant.y - 20, alpha: 0, scale: 1.25, duration: 340, onComplete: () => plant.destroy() });
   }
 
   touchCheckpoint(player, zone) {
@@ -340,74 +431,50 @@ class LevelScene extends Phaser.Scene {
     const now = this.time.now;
     if (now - this.lastDoAt < 450) return;
     this.lastDoAt = now;
-    const nearBench = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1570, this.groundY - 88) < 145;
-    const nearApple = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1730, this.groundY - 92) < 165;
+    const nearBench = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1665, this.groundY - 80) < 150;
+    const nearTree = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1850, this.groundY - 160) < 190;
 
     if (nearBench) {
-      this.setMessage('The wind sounds soft here.', 2400);
-      this.tweens.add({ targets: this.player, scaleY: 0.88, duration: 140, yoyo: true, ease: 'Sine.easeInOut' });
+      this.setMessage('Amber sits and watches the rainbow.', 2600);
+      this.tweens.add({ targets: this.player, scaleY: 0.88, duration: 150, yoyo: true, ease: 'Sine.easeInOut' });
+      this.spawnBirds(1500, this.groundY - 280);
       return;
     }
-    if (nearApple) {
-      this.setMessage('Amber eats a sweet apple.', 2100);
-      const apple = this.add.circle(this.player.x + 18 * this.facing, this.player.y - 38, 7, 0xff6b6b).setDepth(40);
+    if (nearTree) {
+      this.setMessage('The apples smell sweet.', 2100);
+      const apple = this.add.circle(this.player.x + 18 * this.facing, this.player.y - 38, 7, 0xff6b6b).setDepth(60);
       this.tweens.add({ targets: apple, x: this.player.x + 5 * this.facing, y: this.player.y - 34, alpha: 0, duration: 420, onComplete: () => apple.destroy() });
       return;
     }
-
-    // playful handstand anywhere else
     this.setMessage('Handstand!', 900);
     this.tweens.add({ targets: this.player, angle: 180, duration: 170, yoyo: true, ease: 'Sine.easeInOut', onComplete: () => { this.player.angle = 0; } });
+  }
+
+  spawnBirds(x, y) {
+    for (let i = 0; i < 4; i++) {
+      const bird = this.add.text(x - i * 24, y + i * 9, '⌁', { fontFamily: 'Arial', fontSize: '30px', color: '#ffffff' }).setOrigin(0.5).setDepth(70).setAlpha(0.45);
+      this.tweens.add({ targets: bird, x: bird.x + 380, y: bird.y - 40, alpha: 0, duration: 2300 + i * 220, ease: 'Sine.easeInOut', onComplete: () => bird.destroy() });
+    }
   }
 
   tryFinish() {
     if (this.finished) return;
     if (this.collected < this.totalFluffs) {
-      this.setMessage('Find all 3 moon fluffs first.', 2000);
+      this.setMessage('Find the moon fluff first.', 2000);
       return;
     }
     this.finished = true;
     this.player.body.setVelocity(0, 0);
     this.currentSpeed = 0;
     this.cameras.main.stopFollow();
-
-    // v3.4: do NOT tween/recompose the camera at the finish.
-    // The camera should feel like it simply arrives here naturally.
-    // The moon position and extra world space now create the end shot without a camera snap.
-    this.cameraTargetX = this.cameras.main.scrollX;
-
-    this.setMessage('A little closer to the moon.', 2800);
+    this.setMessage('The moon is awake.', 2800);
     this.time.delayedCall(900, () => {
-      const heartOriginX = this.endMoon ? this.endMoon.x - 18 : this.player.x + 210;
-      const heartOriginY = this.endMoon ? this.endMoon.y + 18 : this.player.y - 180;
-      for (let i = 0; i < 22; i++) {
-        const h = this.add.text(heartOriginX, heartOriginY, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
+      for (let i = 0; i < 20; i++) {
+        const h = this.add.text(this.revealMoon.x, this.revealMoon.y + 16, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
         this.tweens.add({ targets: h, x: h.x + Phaser.Math.Between(-145, 145), y: h.y - Phaser.Math.Between(60, 190), alpha: 0, duration: Phaser.Math.Between(1100, 1900), delay: i * 55, onComplete: () => h.destroy() });
       }
       if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
     });
-  }
-
-  showGuaranteedMoonPayoff() {
-    if (this.payoffMoon) this.payoffMoon.destroy();
-
-    const viewX = this.cameras.main.scrollX;
-    const moonX = viewX + this.visibleW * 0.80;
-    const moonY = this.visibleH * 0.24;
-
-    this.payoffMoon = this.add.container(moonX, moonY).setDepth(110);
-    const glow1 = this.add.circle(0, 0, 126, 0xfff0b8, 0.08);
-    const glow2 = this.add.circle(0, 0, 88, 0xfff0b8, 0.13);
-    const moon = this.add.circle(0, 0, 58, 0xffedaf, 0.92);
-    const cutout = this.add.circle(21, -14, 48, 0x122a60, 0.34);
-    const sparkle1 = this.add.text(-88, -68, '✦', { fontFamily: 'Arial', fontSize: '26px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.78);
-    const sparkle2 = this.add.text(94, 56, '✦', { fontFamily: 'Arial', fontSize: '20px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.64);
-    this.payoffMoon.add([glow1, glow2, moon, cutout, sparkle1, sparkle2]);
-    this.payoffMoon.setScale(0.15);
-    this.payoffMoon.setAlpha(0);
-
-    this.tweens.add({ targets: this.payoffMoon, scale: 1, alpha: 1, duration: 650, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: this.payoffMoon, y: moonY - 12, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   handleVariableJump(input, onGround) {
@@ -445,16 +512,16 @@ class LevelScene extends Phaser.Scene {
   createDoubleJumpBurst() {
     const x = this.player.x, y = this.player.y + 38;
     for (let i = 0; i < 7; i++) {
-      const p = this.add.circle(x, y, 3, 0xffffff, 0.78).setDepth(40);
+      const p = this.add.circle(x, y, 3, 0xffffff, 0.78).setDepth(60);
       this.tweens.add({ targets: p, x: x + Phaser.Math.Between(-38, 38), y: y + Phaser.Math.Between(8, 42), alpha: 0, scale: 0.2, duration: 260, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
     }
   }
 
   createBlowEffect() {
     const dir = this.facing;
-    for (let i = 0; i < 11; i++) {
-      const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86).setDepth(42);
-      this.tweens.add({ targets: seed, x: seed.x + dir * Phaser.Math.Between(60, 145), y: seed.y + Phaser.Math.Between(-54, 18), alpha: 0, scale: Phaser.Math.FloatBetween(0.6, 1.35), duration: Phaser.Math.Between(480, 760), delay: i * 18, ease: 'Sine.easeOut', onComplete: () => seed.destroy() });
+    for (let i = 0; i < 9; i++) {
+      const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86).setDepth(62);
+      this.tweens.add({ targets: seed, x: seed.x + dir * Phaser.Math.Between(60, 135), y: seed.y + Phaser.Math.Between(-52, 18), alpha: 0, scale: Phaser.Math.FloatBetween(0.6, 1.35), duration: Phaser.Math.Between(480, 760), delay: i * 18, ease: 'Sine.easeOut', onComplete: () => seed.destroy() });
     }
   }
 
@@ -478,7 +545,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   respawn() {
-    const cp = this.activeCheckpoint || { x: 145, y: this.groundY - 72 };
+    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 168 };
     this.player.setPosition(cp.x, cp.y);
     this.player.body.setVelocity(0, 0);
     this.currentSpeed = 0;
@@ -492,36 +559,28 @@ class LevelScene extends Phaser.Scene {
     const max = Math.max(0, s.worldWidth - this.visibleW);
     const speed = this.currentSpeed || 0;
 
-    // v3.5: smooth the camera anchor itself.
-    // The previous logic jumped from a left-looking anchor back to a neutral anchor
-    // when the player stopped after walking left. That made stopping left feel much
-    // less smooth than stopping right. Now the anchor stays where it was when Amber
-    // stops, and only eases when she actually starts moving the other direction.
     let targetAnchor;
     if (Math.abs(speed) > 35) {
       targetAnchor = speed > 0
         ? (this.isPortrait ? 0.20 : 0.22)
         : (this.isPortrait ? 0.50 : 0.45);
     } else {
-      targetAnchor = this.cameraAnchor !== undefined
-        ? this.cameraAnchor
-        : (this.isPortrait ? 0.30 : 0.26);
+      targetAnchor = this.cameraAnchor !== undefined ? this.cameraAnchor : (this.isPortrait ? 0.30 : 0.26);
     }
 
-    if (initial || this.cameraAnchor === undefined) {
-      this.cameraAnchor = targetAnchor;
-    } else {
-      this.cameraAnchor = Phaser.Math.Linear(this.cameraAnchor, targetAnchor, 0.045);
-    }
+    if (initial || this.cameraAnchor === undefined) this.cameraAnchor = targetAnchor;
+    else this.cameraAnchor = Phaser.Math.Linear(this.cameraAnchor, targetAnchor, 0.045);
 
     let desired = this.player.x - this.visibleW * this.cameraAnchor;
     desired = Phaser.Math.Clamp(desired, 0, max);
+
     if (initial || this.cameraTargetX === undefined) {
       this.cameraTargetX = desired;
       this.cameras.main.scrollX = desired;
       this.cameras.main.scrollY = 0;
       return;
     }
+
     this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desired, 0.12);
     this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
     this.cameras.main.scrollY = 0;
@@ -534,8 +593,10 @@ class LevelScene extends Phaser.Scene {
     const onGround = this.player.body.blocked.down || this.player.body.touching.down;
 
     let target = 0;
-    if (input.left) target -= s.playerSpeed;
-    if (input.right) target += s.playerSpeed;
+    if (!this.inputLocked) {
+      if (input.left) target -= s.playerSpeed;
+      if (input.right) target += s.playerSpeed;
+    }
 
     const rate = target === 0 ? s.deceleration : s.acceleration;
     const step = rate * (delta / 1000);
@@ -548,17 +609,20 @@ class LevelScene extends Phaser.Scene {
       this.player.scaleX = this.facing;
     }
 
-    this.handleVariableJump(input, onGround);
+    if (!this.inputLocked) this.handleVariableJump(input, onGround);
+    else this.jumpWasDown = input.jump;
+
     if (!this.wasGrounded && onGround) this.playLandingFeedback();
     this.wasGrounded = onGround;
 
-    if (input.blow) {
+    if (!this.inputLocked && input.blow) {
       this.doInteraction();
       this.createBlowEffect();
     }
 
-    if (this.player.y > this.groundY + 240) this.respawn();
+    if (this.player.y > this.groundY + 260) this.respawn();
 
+    this.updateGardenFlowers();
     this.animatePlayer(delta, onGround);
     this.updateCamera(false);
   }
