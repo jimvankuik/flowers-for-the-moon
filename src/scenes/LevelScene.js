@@ -290,16 +290,23 @@ class LevelScene extends Phaser.Scene {
     const moon = this.add.circle(0, 0, 76, 0xfff1bd, 0.86);
     const crescentCut = this.add.circle(30, -18, 66, 0x122a60, 0.30);
     const sparkle = this.add.text(-122, -88, '✦', { fontFamily: 'Arial', fontSize: '30px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.8);
-    this.endMoon.add([glowA, glowB, moon, crescentCut, sparkle]);
+    // The little boy belongs ON the moon, not in a separate portal before it.
+    // Keep him as a child of the moon container so the end animation happens on the moon itself.
+    const boyGlow = this.add.circle(-18, 34, 30, 0xffffff, 0.12);
+    const boyBody = this.add.ellipse(-18, 44, 20, 28, 0xf6d7b8, 0.95);
+    const boyHead = this.add.circle(-18, 24, 13, 0xffdfc4, 1);
+    const boyHair = this.add.ellipse(-18, 15, 26, 12, 0xf4c66a, 0.95);
+    const boyHeart = this.add.text(-18, 1, '♡', { fontFamily: 'Arial', fontSize: '20px', color: '#fffaf0' }).setOrigin(0.5);
+    this.endMoon.add([glowA, glowB, moon, crescentCut, sparkle, boyGlow, boyBody, boyHead, boyHair, boyHeart]);
     this.tweens.add({ targets: this.endMoon, y: gy - 318, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    // Small warm destination marker for Amber, placed before the moon.
-    this.finishMarker = this.add.container(this.finishX, gy - 108).setDepth(16);
-    const aura = this.add.circle(0, 0, 70, 0xfff2b8, 0.14);
-    const portal = this.add.circle(0, 0, 38, 0xfff1bd, 0.38);
-    const boy = this.add.text(0, 7, '♡', { fontFamily: 'Arial', fontSize: '40px', color: '#fff6da' }).setOrigin(0.5);
-    this.finishMarker.add([aura, portal, boy]);
-    this.tweens.add({ targets: this.finishMarker, y: gy - 120, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // Ground-level destination marker for gameplay only. It is intentionally subtle;
+    // the emotional focus should be the boy sitting on the moon.
+    this.finishMarker = this.add.container(this.finishX, gy - 92).setDepth(16);
+    const aura = this.add.circle(0, 0, 44, 0xfff2b8, 0.10);
+    const sparkleMarker = this.add.text(0, 0, '✧', { fontFamily: 'Arial', fontSize: '32px', color: '#fff6da' }).setOrigin(0.5).setAlpha(0.58);
+    this.finishMarker.add([aura, sparkleMarker]);
+    this.tweens.add({ targets: this.finishMarker, alpha: 0.45, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     this.finishZone = this.add.zone(this.finishX, gy - 80, 190, 190);
     this.physics.add.existing(this.finishZone, true);
@@ -371,8 +378,10 @@ class LevelScene extends Phaser.Scene {
 
     this.setMessage('A little closer to the moon.', 2800);
     this.time.delayedCall(900, () => {
+      const heartOriginX = this.endMoon ? this.endMoon.x - 18 : this.player.x + 210;
+      const heartOriginY = this.endMoon ? this.endMoon.y + 18 : this.player.y - 180;
       for (let i = 0; i < 22; i++) {
-        const h = this.add.text(this.cameras.main.scrollX + this.visibleW * 0.76, this.visibleH * 0.30, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
+        const h = this.add.text(heartOriginX, heartOriginY, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
         this.tweens.add({ targets: h, x: h.x + Phaser.Math.Between(-145, 145), y: h.y - Phaser.Math.Between(60, 190), alpha: 0, duration: Phaser.Math.Between(1100, 1900), delay: i * 55, onComplete: () => h.destroy() });
       }
       if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
@@ -482,16 +491,30 @@ class LevelScene extends Phaser.Scene {
     const s = window.FTTM.GameSettings;
     const max = Math.max(0, s.worldWidth - this.visibleW);
     const speed = this.currentSpeed || 0;
-    let anchor = this.isPortrait ? 0.30 : 0.26;
-    if (speed > 35) anchor = this.isPortrait ? 0.20 : 0.22;
-    if (speed < -35) anchor = this.isPortrait ? 0.50 : 0.45;
 
-    // v3.4: keep one continuous camera anchor all the way to the finish.
-    // Previous versions changed the anchor near the endpoint, which caused a visible
-    // repositioning/snap to the right. The end composition is now solved by world
-    // placement instead of changing camera behavior.
+    // v3.5: smooth the camera anchor itself.
+    // The previous logic jumped from a left-looking anchor back to a neutral anchor
+    // when the player stopped after walking left. That made stopping left feel much
+    // less smooth than stopping right. Now the anchor stays where it was when Amber
+    // stops, and only eases when she actually starts moving the other direction.
+    let targetAnchor;
+    if (Math.abs(speed) > 35) {
+      targetAnchor = speed > 0
+        ? (this.isPortrait ? 0.20 : 0.22)
+        : (this.isPortrait ? 0.50 : 0.45);
+    } else {
+      targetAnchor = this.cameraAnchor !== undefined
+        ? this.cameraAnchor
+        : (this.isPortrait ? 0.30 : 0.26);
+    }
 
-    let desired = this.player.x - this.visibleW * anchor;
+    if (initial || this.cameraAnchor === undefined) {
+      this.cameraAnchor = targetAnchor;
+    } else {
+      this.cameraAnchor = Phaser.Math.Linear(this.cameraAnchor, targetAnchor, 0.045);
+    }
+
+    let desired = this.player.x - this.visibleW * this.cameraAnchor;
     desired = Phaser.Math.Clamp(desired, 0, max);
     if (initial || this.cameraTargetX === undefined) {
       this.cameraTargetX = desired;
