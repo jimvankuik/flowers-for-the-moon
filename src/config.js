@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v3-clean-rebuild",
+  version: "fluistervelden-prototype-v3.1-moon-fix",
   worldWidth: 3900,
   gravityY: 1500,
   playerSpeed: 305,
@@ -9,5 +9,5 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -300,
   acceleration: 2300,
   deceleration: 2750,
-  buildMarker: "fluistervelden-prototype-v3-clean-rebuild-config"
+  buildMarker: "fluistervelden-prototype-v3.1-moon-fix-config"
 };
