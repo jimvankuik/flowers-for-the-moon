@@ -17,13 +17,14 @@ class LevelScene extends Phaser.Scene {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
     this.isPortrait = this.screenH > this.screenW;
-    // Use the proven v57-style world scaling: the camera shows a larger world area,
-    // so landscape phones see the player, ground and sky composition correctly.
-    this.worldZoom = this.isPortrait ? 0.58 : 0.42;
-    this.visibleW = this.screenW / this.worldZoom;
-    this.visibleH = this.screenH / this.worldZoom;
-    this.groundY = this.visibleH - (this.isPortrait ? 190 : 165);
-    this.safeFallY = this.visibleH + 360;
+    // v2.3 fix: use screen-sized world height for the first prototype.
+    // Previous v2.x builds placed the ground too low for mobile landscape,
+    // so UI loaded while Amber/platforms sat below the visible play area.
+    this.worldZoom = 1;
+    this.visibleW = this.screenW;
+    this.visibleH = this.screenH;
+    this.groundY = this.visibleH - (this.isPortrait ? 260 : 240);
+    this.safeFallY = this.visibleH + 260;
     this.cameras.main.setBackgroundColor('#10275f');
     if (window.FTTM.hideFinishPanel) window.FTTM.hideFinishPanel();
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFluffs);
