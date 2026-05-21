@@ -1,13 +1,13 @@
 window.FTTM = window.FTTM || {};
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v2.3-camera-ground-fix",
-  worldWidth: 6600,
-  gravityY: 1580,
-  playerSpeed: 325,
-  jumpVelocity: -680,
-  jumpCutVelocity: -315,
+  version: "fluistervelden-prototype-v2.4-stable-rebuild",
+  worldWidth: 5400,
+  gravityY: 1680,
+  playerSpeed: 335,
+  jumpVelocity: -690,
+  jumpCutVelocity: -310,
   doubleJumpVelocity: -560,
-  acceleration: 2300,
-  deceleration: 2800,
-  buildMarker: "fluistervelden-prototype-v2.3-camera-ground-fix"
+  acceleration: 2400,
+  deceleration: 2850,
+  buildMarker: "fluistervelden-prototype-v2.4-stable-rebuild"
 };
