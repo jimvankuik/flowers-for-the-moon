@@ -343,14 +343,43 @@ class LevelScene extends Phaser.Scene {
     this.player.body.setVelocity(0, 0);
     this.currentSpeed = 0;
     this.cameras.main.stopFollow();
+
+    // v3.1 fix: the moon payoff must always be visible on mobile landscape.
+    // The previous moon lived in world space near the far right, which could end up
+    // outside the visible camera window. This payoff moon is placed directly inside
+    // the current camera view, independent of the level-end position.
+    this.showGuaranteedMoonPayoff();
+
     this.setMessage('A little closer to the moon.', 2800);
     this.time.delayedCall(900, () => {
       for (let i = 0; i < 22; i++) {
-        const h = this.add.text(this.finishX, this.groundY - 128, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(50);
+        const h = this.add.text(this.cameras.main.scrollX + this.visibleW * 0.76, this.visibleH * 0.30, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
         this.tweens.add({ targets: h, x: h.x + Phaser.Math.Between(-145, 145), y: h.y - Phaser.Math.Between(60, 190), alpha: 0, duration: Phaser.Math.Between(1100, 1900), delay: i * 55, onComplete: () => h.destroy() });
       }
       if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
     });
+  }
+
+  showGuaranteedMoonPayoff() {
+    if (this.payoffMoon) this.payoffMoon.destroy();
+
+    const viewX = this.cameras.main.scrollX;
+    const moonX = viewX + this.visibleW * 0.80;
+    const moonY = this.visibleH * 0.24;
+
+    this.payoffMoon = this.add.container(moonX, moonY).setDepth(110);
+    const glow1 = this.add.circle(0, 0, 126, 0xfff0b8, 0.08);
+    const glow2 = this.add.circle(0, 0, 88, 0xfff0b8, 0.13);
+    const moon = this.add.circle(0, 0, 58, 0xffedaf, 0.92);
+    const cutout = this.add.circle(21, -14, 48, 0x122a60, 0.34);
+    const sparkle1 = this.add.text(-88, -68, '✦', { fontFamily: 'Arial', fontSize: '26px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.78);
+    const sparkle2 = this.add.text(94, 56, '✦', { fontFamily: 'Arial', fontSize: '20px', color: '#fff4c7' }).setOrigin(0.5).setAlpha(0.64);
+    this.payoffMoon.add([glow1, glow2, moon, cutout, sparkle1, sparkle2]);
+    this.payoffMoon.setScale(0.15);
+    this.payoffMoon.setAlpha(0);
+
+    this.tweens.add({ targets: this.payoffMoon, scale: 1, alpha: 1, duration: 650, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: this.payoffMoon, y: moonY - 12, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   handleVariableJump(input, onGround) {
