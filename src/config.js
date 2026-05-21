@@ -1,13 +1,13 @@
 window.FTTM = window.FTTM || {};
+
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v2.4-stable-rebuild",
-  worldWidth: 5400,
-  gravityY: 1680,
-  playerSpeed: 335,
-  jumpVelocity: -690,
-  jumpCutVelocity: -310,
-  doubleJumpVelocity: -560,
-  acceleration: 2400,
-  deceleration: 2850,
-  buildMarker: "fluistervelden-prototype-v2.4-stable-rebuild"
+  version: "fluistervelden-prototype-v3-clean-rebuild",
+  worldWidth: 3900,
+  gravityY: 1500,
+  playerSpeed: 305,
+  jumpVelocity: -660,
+  jumpCutVelocity: -300,
+  acceleration: 2300,
+  deceleration: 2750,
+  buildMarker: "fluistervelden-prototype-v3-clean-rebuild-config"
 };
