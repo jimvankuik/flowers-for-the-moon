@@ -507,7 +507,7 @@ class LevelScene extends Phaser.Scene {
 
   updateCamera(initial=false) {
     const s = window.FTTM.GameSettings;
-    const max = Math.max(0, s.worldWidth - this.visibleW / this.worldZoom);
+    const max = Math.max(0, s.worldWidth - this.visibleW);
     const speed = this.currentSpeed || 0;
     let anchor = this.isPortrait ? .24 : .27;
     if (speed > 35) anchor = this.isPortrait ? .16 : .23;
@@ -517,7 +517,7 @@ class LevelScene extends Phaser.Scene {
     if (this.player.x > 2700 && this.player.x < 3450) anchor = this.isPortrait ? .20 : .20;
     if (this.player.x > 5900) anchor = this.isPortrait ? .22 : .22;
 
-    let targetX = Phaser.Math.Clamp(this.player.x - (this.visibleW / this.worldZoom) * anchor, 0, max);
+    let targetX = Phaser.Math.Clamp(this.player.x - this.visibleW * anchor, 0, max);
     let targetY = 0;
     if (this.player.x > 2700 && this.player.x < 3450) targetY = -22;
     if (this.player.x > 5900) targetY = -32;
@@ -551,4 +551,6 @@ class LevelScene extends Phaser.Scene {
     }
   }
 }
+window.FTTM = window.FTTM || {};
+window.FTTM.LevelScene = LevelScene;
 window.LevelScene = LevelScene;
