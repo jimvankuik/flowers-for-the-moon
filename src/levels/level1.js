@@ -1,6 +1,6 @@
 window.FTTM = window.FTTM || {};
 window.FTTM.Level1 = {
   name: "Fluistervelden",
-  prototype: "v2.2-scene-start-fix",
-  goal: "Een zachte droomroute: ontdekking, rust, klein beetje platforming, maan-reveal."
+  prototype: "v2.4-stable-rebuild",
+  goal: "Vanaf scratch opnieuw opgebouwd op de bewezen v57 camera/wereld-schaal."
 };
