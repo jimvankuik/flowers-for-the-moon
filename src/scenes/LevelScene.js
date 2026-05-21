@@ -14,12 +14,16 @@ class LevelScene extends Phaser.Scene {
 
   create() {
     const s = window.FTTM.GameSettings;
-    this.visibleW = this.scale.width;
-    this.visibleH = this.scale.height;
-    this.isPortrait = this.visibleH > this.visibleW;
-    this.worldZoom = this.isPortrait ? 0.82 : 1;
-    this.groundY = Math.min(this.visibleH - 142, Math.max(330, this.visibleH * 0.72));
-    this.safeFallY = this.visibleH + 260;
+    this.screenW = this.scale.width;
+    this.screenH = this.scale.height;
+    this.isPortrait = this.screenH > this.screenW;
+    // Use the proven v57-style world scaling: the camera shows a larger world area,
+    // so landscape phones see the player, ground and sky composition correctly.
+    this.worldZoom = this.isPortrait ? 0.58 : 0.42;
+    this.visibleW = this.screenW / this.worldZoom;
+    this.visibleH = this.screenH / this.worldZoom;
+    this.groundY = this.visibleH - (this.isPortrait ? 190 : 165);
+    this.safeFallY = this.visibleH + 360;
     this.cameras.main.setBackgroundColor('#10275f');
     if (window.FTTM.hideFinishPanel) window.FTTM.hideFinishPanel();
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFluffs);
@@ -44,6 +48,7 @@ class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.plants, this.collectPlant, null, this);
     this.physics.add.overlap(this.player, this.goalZone, this.tryFinish, null, this);
 
+    this.physics.world.setBounds(0, 0, s.worldWidth, this.visibleH + 420);
     this.cameras.main.setBounds(0, 0, s.worldWidth, this.visibleH);
     this.cameras.main.setZoom(this.worldZoom);
     this.updateCamera(true);
