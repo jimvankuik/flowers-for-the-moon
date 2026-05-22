@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v6.0-storybook-world",
+  version: "fluistervelden-prototype-v6.1-terrain-camera-fix",
   worldWidth: 5400,
   gravityY: 1450,
   playerSpeed: 300,
@@ -9,5 +9,5 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -300,
   acceleration: 2300,
   deceleration: 2850,
-  buildMarker: "fluistervelden-prototype-v6.0-storybook-world-config"
+  buildMarker: "fluistervelden-prototype-v6.1-terrain-camera-fix-config"
 };
