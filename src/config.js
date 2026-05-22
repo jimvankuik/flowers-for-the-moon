@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v4-intro-sequence-clean-rebuild",
+  version: "fluistervelden-prototype-v4-1-composition-pass",
   worldWidth: 5200,
   gravityY: 1500,
   playerSpeed: 305,
@@ -9,5 +9,5 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -300,
   acceleration: 2300,
   deceleration: 2750,
-  buildMarker: "fluistervelden-prototype-v4-intro-sequence-clean-rebuild-config"
+  buildMarker: "fluistervelden-prototype-v4-1-composition-pass-config"
 };
