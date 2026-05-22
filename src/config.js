@@ -1,7 +1,7 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v4-1-composition-pass",
+  version: "fluistervelden-prototype-v4-3-dynamic-camera",
   worldWidth: 5200,
   gravityY: 1500,
   playerSpeed: 305,
@@ -9,5 +9,5 @@ window.FTTM.GameSettings = {
   jumpCutVelocity: -300,
   acceleration: 2300,
   deceleration: 2750,
-  buildMarker: "fluistervelden-prototype-v4-1-composition-pass-config"
+  buildMarker: "fluistervelden-prototype-v4-3-dynamic-camera-config"
 };
