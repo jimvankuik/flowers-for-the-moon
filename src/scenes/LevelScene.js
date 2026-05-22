@@ -26,10 +26,11 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // v4.6 camera test pass:
-    // deliberately taller world and stronger vertical follow so the camera behaviour is clearly testable.
+    // v4.7 landscape foundation:
+    // the world is now taller than the screen so the camera can softly follow
+    // real height changes without reacting to every small jump.
     this.groundY = this.isPortrait ? this.visibleH - 145 : this.visibleH - 128;
-    this.worldBottom = this.visibleH + 1650;
+    this.worldBottom = this.visibleH + 1050;
 
     this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
     this.cameras.main.setBounds(0, 0, s.worldWidth, this.worldBottom);
@@ -46,7 +47,6 @@ class LevelScene extends Phaser.Scene {
     this.createSideArea();
     this.createMoonRevealArea();
     this.createAtmosphere();
-    this.createCameraTestGuides();
     this.createPlayer();
     this.createCollectibles();
     this.createInteractionZones();
@@ -126,28 +126,29 @@ class LevelScene extends Phaser.Scene {
   createLandscapeFromScratch() {
     this.platforms = this.physics.add.staticGroup();
     this.checkpoints = this.physics.add.staticGroup();
+    this.landLayers = this.add.graphics().setDepth(-2);
+    this.grassLayer = this.add.graphics().setDepth(5);
     const gy = this.groundY;
 
-    // v4.1 composition pass: same intro idea, cleaner spatial design.
-    // Route: warm home -> flower garden -> slope to lake -> tree/bank/lake -> park -> hidden lower side area -> moon reveal.
-    // v4.3 uses stronger height variation to test soft vertical camera follow.
-    // These are still prototype land blocks, but the route now reads as:
-    // high home hill -> gentle garden drop -> low lake -> rising park -> hidden lower nook -> high moon reveal.
-    this.addGroundSegment(0, gy - 280, 560, 0x6da96e, 'home hill high');
-    this.addGroundSegment(560, gy - 225, 440, 0x72ad72, 'flower garden');
-    this.addGroundSegment(1000, gy - 70, 390, 0x68a46c, 'downhill approach');
-    this.addGroundSegment(1390, gy + 120, 950, 0x5f9a69, 'LOW lake scene - camera test');
-    this.addGroundSegment(2340, gy - 20, 380, 0x68a46c, 'long hill to park');
-    this.addGroundSegment(2720, gy - 275, 840, 0x637f68, 'HIGH park path - camera test');
-    this.addGroundSegment(3560, gy - 210, 420, 0x697f65, 'park exit');
-    this.addGroundSegment(3980, gy - 380, 980, 0x6ca76e, 'HIGH moon reveal hill - camera test');
+    // v4.7 Landscape Foundation:
+    // The gameplay colliders are still simple and safe, but the visible terrain is now drawn as
+    // soft overlapping hills instead of separate block platforms. This keeps the prototype playable
+    // while giving Fluistervelden a more natural, landscape-first feeling.
+    this.addGroundSegment(0, gy - 220, 560, 0x6da96e, 'home hill high', { left: 36, right: 18, dip: 30 });
+    this.addGroundSegment(540, gy - 182, 500, 0x72ad72, 'flower garden', { left: 14, right: 42, dip: 22 });
+    this.addGroundSegment(980, gy - 92, 450, 0x68a46c, 'downhill approach', { left: 36, right: 58, dip: 36 });
+    this.addGroundSegment(1360, gy + 18, 1020, 0x5f9a69, 'low lake scene', { left: 42, right: 32, dip: 18 });
+    this.addGroundSegment(2300, gy - 52, 460, 0x68a46c, 'long hill to park', { left: 54, right: 60, dip: 34 });
+    this.addGroundSegment(2680, gy - 178, 920, 0x637f68, 'higher park path', { left: 38, right: 34, dip: 20 });
+    this.addGroundSegment(3560, gy - 140, 460, 0x697f65, 'park exit', { left: 26, right: 52, dip: 24 });
+    this.addGroundSegment(3940, gy - 242, 1080, 0x6ca76e, 'high moon reveal hill', { left: 58, right: 22, dip: 30 });
 
     // Tree climb at the lake. Kept simple and forgiving; camera should rise gently when climbing.
     this.addSoftBranch(1485, gy - 155, 155, 20);
     this.addSoftBranch(1595, gy - 230, 165, 20);
 
     // Real side area: below the park path, visually separated and only reached by choosing the small hidden descent.
-    this.addGroundSegment(3095, gy + 420, 520, 0x4f835d, 'VERY LOW hidden blue-grape nook - camera test');
+    this.addGroundSegment(3095, gy + 185, 520, 0x4f835d, 'hidden lower blue-grape nook');
     this.addSoftBranch(3040, gy - 70, 130, 18); // gentle little step down / entry lip
     this.addSoftBranch(3535, gy - 70, 150, 18); // soft step back up
 
@@ -156,34 +157,92 @@ class LevelScene extends Phaser.Scene {
     this.addCheckpoint(1130, gy - 172);
     this.addCheckpoint(1510, gy - 52);
     this.addCheckpoint(2440, gy - 138);
-    this.addCheckpoint(3180, gy + 377);
+    this.addCheckpoint(3180, gy + 142);
     this.addCheckpoint(4040, gy - 322);
   }
 
 
-  addGroundSegment(x, topY, w, color, label) {
+  addGroundSegment(x, topY, w, color, label, shape = {}) {
     const h = 44;
+
+    // Collision stays simple, wide and child-friendly.
     const collider = this.add.rectangle(x + w / 2, topY + h / 2, w, h, 0x000000, 0);
     this.physics.add.existing(collider, true);
     this.platforms.add(collider);
 
-    // Still prototype geometry, but visually treated as flowing land instead of old block platforms.
-    this.add.rectangle(x + w / 2, topY + 36, w, 96, color, 1).setDepth(0);
-    this.add.rectangle(x + w / 2, topY + 3, w, 10, 0xc7ef8c, 0.98).setDepth(4);
-    this.add.ellipse(x + w * 0.25, topY + 54, w * 0.62, 132, 0x234941, 0.26).setDepth(-1);
-    this.add.ellipse(x + w * 0.75, topY + 58, w * 0.58, 142, 0x1e403a, 0.22).setDepth(-1);
+    // Visible terrain is intentionally more organic than the collision.
+    const leftLift = shape.left || 24;
+    const rightLift = shape.right || 24;
+    const dip = shape.dip || 22;
+    const g = this.add.graphics().setDepth(0);
+
+    // Main hill body.
+    g.fillStyle(color, 1);
+    g.beginPath();
+    g.moveTo(x - 34, topY + 40);
+    g.quadraticCurveTo(x + w * 0.18, topY - leftLift, x + w * 0.42, topY + dip * 0.25);
+    g.quadraticCurveTo(x + w * 0.72, topY + dip, x + w + 34, topY - rightLift * 0.45);
+    g.lineTo(x + w + 72, topY + 190);
+    g.lineTo(x - 72, topY + 190);
+    g.closePath();
+    g.fillPath();
+
+    // Soft darker underside for depth.
+    g.fillStyle(0x1f453d, 0.22);
+    g.beginPath();
+    g.moveTo(x - 20, topY + 80);
+    g.quadraticCurveTo(x + w * 0.25, topY + 48, x + w * 0.58, topY + 72);
+    g.quadraticCurveTo(x + w * 0.82, topY + 94, x + w + 38, topY + 60);
+    g.lineTo(x + w + 58, topY + 182);
+    g.lineTo(x - 56, topY + 182);
+    g.closePath();
+    g.fillPath();
+
+    // Curved grass highlight along the playable top.
+    const grass = this.add.graphics().setDepth(6);
+    grass.lineStyle(9, 0xc7ef8c, 0.92);
+    grass.beginPath();
+    grass.moveTo(x - 14, topY + 4);
+    grass.quadraticCurveTo(x + w * 0.24, topY - 8, x + w * 0.50, topY + 5);
+    grass.quadraticCurveTo(x + w * 0.76, topY + 14, x + w + 16, topY + 1);
+    grass.strokePath();
+
+    // Small grass tufts, sparse and soft.
+    for (let i = 0; i < Math.max(5, Math.floor(w / 110)); i++) {
+      const tx = x + 28 + i * (w - 56) / Math.max(1, Math.floor(w / 110));
+      const ty = topY + Phaser.Math.Between(-2, 10);
+      const tuft = this.add.container(tx, ty).setDepth(8);
+      tuft.add(this.add.rectangle(-5, 2, 2, 18, 0xaee883, 0.72).setAngle(-18));
+      tuft.add(this.add.rectangle(0, 0, 2, 22, 0xc7ef8c, 0.74));
+      tuft.add(this.add.rectangle(5, 2, 2, 18, 0xaee883, 0.72).setAngle(18));
+      this.tweens.add({ targets: tuft, angle: Phaser.Math.Between(-3, 3), duration: Phaser.Math.Between(1100, 2100), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
 
     if (label) {
-      const t = this.add.text(x + 14, topY + 58, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setAlpha(0); // label hidden; useful placeholder only.
+      const t = this.add.text(x + 14, topY + 58, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setAlpha(0);
       t.setData('label', label);
     }
   }
 
   addSoftBranch(x, y, w, h) {
-    const branch = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x9a7040, 1).setDepth(14);
-    branch.setStrokeStyle(3, 0xc7924e, 0.75);
-    this.physics.add.existing(branch, true);
-    this.platforms.add(branch);
+    const branchCollider = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0).setDepth(14);
+    this.physics.add.existing(branchCollider, true);
+    this.platforms.add(branchCollider);
+
+    const g = this.add.graphics().setDepth(14);
+    g.fillStyle(0x8f633b, 1);
+    g.beginPath();
+    g.moveTo(x, y + h * 0.55);
+    g.quadraticCurveTo(x + w * 0.35, y - 6, x + w, y + h * 0.35);
+    g.lineTo(x + w, y + h + 4);
+    g.quadraticCurveTo(x + w * 0.45, y + h + 10, x, y + h + 2);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(3, 0xc7924e, 0.65);
+    g.beginPath();
+    g.moveTo(x + 8, y + h * 0.45);
+    g.quadraticCurveTo(x + w * 0.42, y, x + w - 8, y + h * 0.35);
+    g.strokePath();
   }
 
   addCheckpoint(x, y) {
@@ -339,13 +398,13 @@ class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: butterfly, y: gy - 68, x: 3155, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // The discovered nook below the route.
-    this.add.ellipse(3360, gy + 325, 430, 82, 0x274d44, 0.28).setDepth(1);
+    this.add.ellipse(3360, gy + 90, 430, 82, 0x274d44, 0.28).setDepth(1);
     for (let i = 0; i < 16; i++) {
       const x = 3170 + i * 24;
-      this.add.rectangle(x, gy + 270, 3, Phaser.Math.Between(30, 56), 0x75b862, 0.78).setOrigin(0.5, 1).setDepth(9);
-      this.add.circle(x, gy + 247 - Phaser.Math.Between(0, 12), 4, 0x9bb7ff, 0.72).setDepth(12);
+      this.add.rectangle(x, gy + 35, 3, Phaser.Math.Between(30, 56), 0x75b862, 0.78).setOrigin(0.5, 1).setDepth(9);
+      this.add.circle(x, gy + 12 - Phaser.Math.Between(0, 12), 4, 0x9bb7ff, 0.72).setDepth(12);
     }
-    this.add.text(3360, gy + 240, 'stil hoekje', { fontFamily: 'Arial', fontSize: '18px', color: '#dbeebc' }).setOrigin(0.5).setAlpha(0.0);
+    this.add.text(3360, gy + 5, 'stil hoekje', { fontFamily: 'Arial', fontSize: '18px', color: '#dbeebc' }).setOrigin(0.5).setAlpha(0.0);
   }
 
 
@@ -369,32 +428,21 @@ class LevelScene extends Phaser.Scene {
       const p = this.add.circle(Phaser.Math.Between(0, s.worldWidth), Phaser.Math.Between(120, this.groundY - 20), Phaser.Math.FloatBetween(1.2, 2.8), 0xffffff, Phaser.Math.FloatBetween(0.13, 0.42)).setDepth(7);
       this.tweens.add({ targets: p, x: p.x + Phaser.Math.Between(-30, 48), y: p.y + Phaser.Math.Between(-18, 18), duration: Phaser.Math.Between(2300, 5200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
+    // Light flower clusters: sparse foreground polish, not gameplay.
+    for (const cluster of [[650, -112], [1120, -18], [1830, 35], [2510, -72], [3770, -150], [4160, -252]]) {
+      for (let i = 0; i < 10; i++) {
+        const fx = cluster[0] + Phaser.Math.Between(-120, 120);
+        const fy = this.groundY + cluster[1] + Phaser.Math.Between(-10, 10);
+        this.add.rectangle(fx, fy + 12, 2, 24, 0x7fc46a, 0.62).setDepth(9);
+        this.add.circle(fx, fy, Phaser.Math.Between(3, 6), Phaser.Math.RND.pick([0xffc9e8, 0xe1d4ff, 0xfff0a6, 0xbee9ff]), 0.72).setDepth(11);
+      }
+    }
+
     // Birds crossing rainbow/lake and park.
     for (const b of [[1240, this.groundY - 270], [2140, this.groundY - 330], [3780, this.groundY - 300]]) {
       const bird = this.add.text(b[0], b[1], '⌁', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5).setDepth(5).setAlpha(0.42);
       this.tweens.add({ targets: bird, x: bird.x + 420, y: bird.y - 20, duration: 5200, repeat: -1, repeatDelay: 1800, ease: 'Sine.easeInOut' });
     }
-  }
-
-
-  createCameraTestGuides() {
-    // Temporary v4.6 test-only guides. These make vertical camera movement easy to see.
-    const s = window.FTTM.GameSettings;
-    const gy = this.groundY;
-    const guideData = [
-      { y: gy - 380, label: 'HIGH AREA', color: 0xfff2b8 },
-      { y: gy - 120, label: 'MID AREA', color: 0xffffff },
-      { y: gy + 120, label: 'LOW LAKE', color: 0x9bd5ff },
-      { y: gy + 420, label: 'VERY LOW SIDE AREA', color: 0xc9a6ff }
-    ];
-    guideData.forEach((g) => {
-      const line = this.add.rectangle(s.worldWidth / 2, g.y, s.worldWidth, 3, g.color, 0.18).setDepth(80);
-      const label = this.add.text(30, g.y - 28, g.label, { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff' }).setDepth(81).setAlpha(0.65);
-    });
-    this.cameraDebugText = this.add.text(18, 58, 'CAMERA TEST v4.6', { fontFamily: 'Arial', fontSize: '16px', color: '#fff6da' })
-      .setScrollFactor(0)
-      .setDepth(200)
-      .setAlpha(0.9);
   }
 
   createPlayer() {
@@ -423,7 +471,7 @@ class LevelScene extends Phaser.Scene {
     this.addMoonFluff(1610, this.groundY - 275);
 
     // First optional plant in the hidden side area.
-    this.addPlant('Blauwe druifjes gevonden!', 3375, this.groundY + 335, '♧', '#9bb7ff');
+    this.addPlant('Blauwe druifjes gevonden!', 3375, this.groundY + 100, '♧', '#9bb7ff');
   }
 
   addMoonFluff(x, y) {
@@ -660,19 +708,25 @@ class LevelScene extends Phaser.Scene {
     let desiredX = this.player.x - this.visibleW * this.cameraAnchor;
     desiredX = Phaser.Math.Clamp(desiredX, 0, maxX);
 
-    // v4.6 CAMERA TEST PASS:
-    // This is intentionally stronger than the final camera should be.
-    // It follows Amber's vertical position directly enough that the effect is unmistakable.
+    // v4.5 real visible vertical follow:
+    // This deliberately makes the vertical movement visible for testing.
+    // It follows real terrain changes smoothly, but filters out small jump bobbing.
+    const onGround = this.player.body && (this.player.body.blocked.down || this.player.body.touching.down);
     const playerY = this.player.y;
 
     if (initial || this.cameraHeightFocusY === undefined) {
       this.cameraHeightFocusY = playerY;
     } else {
-      this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, playerY, 0.34);
+      const deltaY = playerY - this.cameraHeightFocusY;
+      const strongHeightChange = Math.abs(deltaY) > 90;
+      if (onGround || strongHeightChange) {
+        this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, playerY, 0.13);
+      }
     }
 
-    // Center Amber slightly below the middle. This makes low/high areas clearly visible.
-    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.54 : 0.50);
+    // Keep Amber a little below center. This makes descending to the lake and
+    // climbing to the park visibly move the camera without becoming jumpy.
+    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.57 : 0.54);
     desiredY = Phaser.Math.Clamp(desiredY, 0, maxY);
 
     if (initial || this.cameraTargetX === undefined) {
@@ -684,13 +738,9 @@ class LevelScene extends Phaser.Scene {
     }
 
     this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desiredX, 0.12);
-    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.30);
+    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.18);
     this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.30);
-
-    if (this.cameraDebugText) {
-      this.cameraDebugText.setText(`CAMERA TEST v4.6 | scrollY ${Math.round(this.cameras.main.scrollY)}`);
-    }
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.18);
   }
 
   update(time, delta) {
