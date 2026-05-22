@@ -134,32 +134,22 @@ class LevelScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     this.checkpoints = this.physics.add.staticGroup();
 
-    // Invisible colliders follow the painted path. The visible landscape is drawn separately.
-    const rects = [
-      [0, 815, 880, 70],          // home hill
-      [750, 865, 420, 70],
-      [1080, 930, 410, 70],
-      [1400, 1010, 420, 70],
-      [1740, 1105, 560, 70],      // lower lake path
-      [2250, 1045, 370, 70],
-      [2550, 965, 360, 70],
-      [2860, 870, 670, 70],       // park hill
-      [3490, 930, 350, 70],
-      [3780, 830, 520, 70],       // moon approach
-      [4260, 745, 1050, 70],      // high reveal meadow
-      [3140, 1170, 630, 70],      // hidden side area lower path
+    // v6.1: the main floor is no longer a row of rectangular colliders.
+    // Amber is gently snapped to a painted terrain curve in updateTerrainContact().
+    // Only real "above ground" objects, like climbable tree branches, still use colliders.
+    const branchRects = [
       [1450, 805, 190, 30],       // tree branch 1
       [1555, 710, 190, 30],       // tree branch 2
       [1660, 768, 140, 28],       // tree branch 3
     ];
-    for (const [x,y,w,h] of rects) {
+    for (const [x,y,w,h] of branchRects) {
       const p = this.platforms.create(x + w/2, y + h/2, null);
       p.setDisplaySize(w, h).setVisible(false).refreshBody();
     }
   }
 
   drawContinuousLandscape() {
-    // Main continuous terrain silhouette. This is the big change for v6:
+    // Main continuous terrain silhouette. This is the big change for v6.1:
     // one storybook hillside instead of loose platform rectangles.
     const g = this.add.graphics().setDepth(-5);
     g.fillStyle(0x5f9b63, 1);
@@ -357,15 +347,15 @@ class LevelScene extends Phaser.Scene {
     this.drawRainbow(1900, 875, 520, 0.32);
     const water = this.add.graphics().setDepth(2);
     water.fillStyle(0x75c7d0, 0.55);
-    water.fillEllipse(2050, 1236, 900, 170);
+    water.fillEllipse(2050, 1195, 900, 170);
     water.fillStyle(0xb7fff4, 0.18);
-    water.fillEllipse(2075, 1214, 560, 40);
+    water.fillEllipse(2075, 1173, 560, 40);
 
     // dock/bench, tree > bench > meertje composition
     this.drawBench(1725, 1075, 1.0);
-    this.drawReeds(1840, 1160, 16);
-    this.drawFrog(2130, 1165);
-    this.drawWaterPlants(2310, 1190);
+    this.drawReeds(1840, 1135, 16);
+    this.drawFrog(2130, 1138);
+    this.drawWaterPlants(2310, 1150);
   }
 
   drawParkAndSideArea() {
@@ -504,6 +494,8 @@ class LevelScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(false);
     this.player.setDragX(0);
     this.player.setMaxVelocity(430, 900);
+    this.feetOffset = 70;
+    this.wasTerrainGrounded = false;
     this.playerArt = this.add.container(this.player.x, this.player.y).setDepth(50);
     this.bodyArt = this.add.ellipse(0, 28, 54, 82, 0xff9fc4, 1);
     this.headArt = this.add.circle(0, -26, 34, 0xffe6bf, 1);
@@ -564,6 +556,70 @@ class LevelScene extends Phaser.Scene {
     }
   }
 
+
+  // ---------- smooth terrain ----------
+  getMainTerrainY(x) {
+    const pts = [
+      [0, 785], [350, 760], [790, 815], [1150, 850], [1480, 975],
+      [1900, 1165], [2300, 1080], [2550, 1010], [2880, 890],
+      [3200, 805], [3550, 920], [3820, 880], [4250, 775],
+      [4740, 705], [5500, 745]
+    ];
+    if (x <= pts[0][0]) return pts[0][1];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i];
+      const [x1, y1] = pts[i + 1];
+      if (x >= x0 && x <= x1) {
+        const t = (x - x0) / (x1 - x0);
+        const eased = t * t * (3 - 2 * t);
+        return Phaser.Math.Linear(y0, y1, eased);
+      }
+    }
+    return pts[pts.length - 1][1];
+  }
+
+  getSideTerrainY(x) {
+    const pts = [[3030, 1170], [3350, 1130], [3780, 1175]];
+    if (x < pts[0][0] || x > pts[pts.length - 1][0]) return null;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i];
+      const [x1, y1] = pts[i + 1];
+      if (x >= x0 && x <= x1) {
+        const t = (x - x0) / (x1 - x0);
+        const eased = t * t * (3 - 2 * t);
+        return Phaser.Math.Linear(y0, y1, eased);
+      }
+    }
+    return null;
+  }
+
+  getTerrainYForPlayer() {
+    const mainY = this.getMainTerrainY(this.player.x);
+    const sideY = this.getSideTerrainY(this.player.x);
+    // If Amber is already low enough near the hidden side path, let her stand on that lower path.
+    if (sideY !== null && this.player.y + this.feetOffset > mainY + 90) return sideY;
+    return mainY;
+  }
+
+  updateTerrainContact() {
+    if (!this.player || !this.player.body) return;
+    const terrainY = this.getTerrainYForPlayer();
+    const feetY = this.player.y + this.feetOffset;
+    const fallingOrResting = this.player.body.velocity.y >= -30;
+    const closeEnoughToGround = feetY >= terrainY - (this.wasTerrainGrounded ? 95 : 18);
+
+    if (fallingOrResting && closeEnoughToGround) {
+      this.player.y = Phaser.Math.Linear(this.player.y, terrainY - this.feetOffset, this.wasTerrainGrounded ? 0.45 : 1);
+      this.player.body.velocity.y = 0;
+      this.player.body.blocked.down = true;
+      this.wasTerrainGrounded = true;
+      return true;
+    }
+
+    this.wasTerrainGrounded = false;
+    return false;
+  }
+
   // ---------- overlaps ----------
   collectMoonFluff(player, fluff) {
     if (!fluff.active) return;
@@ -615,10 +671,12 @@ class LevelScene extends Phaser.Scene {
       this.player.setVelocityX(next);
       if (target !== 0) this.facing = Math.sign(target);
 
-      const grounded = this.player.body.blocked.down || this.player.body.touching.down;
+      const terrainGrounded = this.updateTerrainContact();
+      const grounded = terrainGrounded || this.player.body.blocked.down || this.player.body.touching.down;
       if (grounded && !this.wasGrounded) this.jumpCount = 0;
       if (input.jump && !this.jumpWasDown) {
         if (grounded || this.jumpCount < this.maxJumps) {
+          this.wasTerrainGrounded = false;
           this.player.setVelocityY(s.jumpVelocity);
           this.jumpCount += 1;
         }
@@ -628,6 +686,7 @@ class LevelScene extends Phaser.Scene {
       this.wasGrounded = grounded;
     }
 
+    if (this.finished || this.inputLocked) this.updateTerrainContact();
     if (this.player.y > this.worldH - 80) this.respawn();
     this.playerArt.setPosition(this.player.x, this.player.y);
     this.playerArt.setScale(this.facing < 0 ? -1 : 1, 1);
@@ -653,7 +712,7 @@ class LevelScene extends Phaser.Scene {
   updateCamera(initial=false) {
     const cam = this.cameras.main;
     const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * 0.38, 0, this.worldW - this.visibleW);
-    const desiredY = Phaser.Math.Clamp(this.player.y - this.visibleH * 0.58, 0, this.worldH - this.visibleH);
+    const desiredY = Phaser.Math.Clamp(this.player.y - this.visibleH * 0.43, 0, this.worldH - this.visibleH);
     if (initial) { cam.scrollX = desiredX; cam.scrollY = desiredY; this.cameraY = desiredY; return; }
     cam.scrollX = Phaser.Math.Linear(cam.scrollX, desiredX, 0.075);
     // soft cinematic vertical follow, now part of the base camera identity
