@@ -343,7 +343,9 @@ class LevelScene extends Phaser.Scene {
   }
 
   drawLakeArea() {
-    // pond as lower quiet payoff, with rainbow behind
+    // pond as lower quiet payoff, with rainbow behind.
+    // v6.2: objects are moved slightly behind/above the main walking line so Amber
+    // no longer appears to walk through the bench, tree and reeds.
     this.drawRainbow(1900, 875, 520, 0.32);
     const water = this.add.graphics().setDepth(2);
     water.fillStyle(0x75c7d0, 0.55);
@@ -351,21 +353,25 @@ class LevelScene extends Phaser.Scene {
     water.fillStyle(0xb7fff4, 0.18);
     water.fillEllipse(2075, 1173, 560, 40);
 
-    // dock/bench, tree > bench > meertje composition
-    this.drawBench(1725, 1075, 1.0);
-    this.drawReeds(1840, 1135, 16);
+    // tree > bench > meertje composition, but staged behind the path
+    this.drawBench(1760, 1028, 1.0);
+    this.drawReeds(1870, 1115, 16);
     this.drawFrog(2130, 1138);
     this.drawWaterPlants(2310, 1150);
+
+    // foreground grass lip helps sell that Amber is walking on the near path,
+    // while the scenery sits behind it.
+    this.drawForegroundGrassLip(1500, 1090, 980, 0.34);
   }
 
   drawParkAndSideArea() {
     // upper park identity, simplified but warm
-    this.drawBench(3120, 845, 0.95);
-    this.drawBench(3440, 870, 0.9);
-    this.drawTrash(3295, 875);
-    this.drawTrash(3645, 910);
-    this.drawLamp(3000, 845);
-    this.drawLamp(3580, 890);
+    this.drawBench(3120, 800, 0.95);
+    this.drawBench(3440, 830, 0.9);
+    this.drawTrash(3295, 825);
+    this.drawTrash(3645, 865);
+    this.drawLamp(3000, 815);
+    this.drawLamp(3580, 850);
 
     // birds eating near path
     for (const [x,y] of [[3060,830],[3175,850],[3520,885],[3610,895]]) this.drawBird(x,y);
@@ -469,6 +475,22 @@ class LevelScene extends Phaser.Scene {
     this.add.circle(x,y-30,r,col,0.86).setDepth(9);
   }
 
+  drawForegroundGrassLip(x, y, w, alpha=0.28) {
+    const g = this.add.graphics().setDepth(48);
+    g.fillStyle(0x294f37, alpha);
+    g.beginPath();
+    g.moveTo(x, y + 50);
+    g.lineTo(x, y);
+    for (let i = 0; i <= 12; i++) {
+      const px = x + (w * i / 12);
+      const py = y + Math.sin(i * 0.9) * 12 + Phaser.Math.Between(-6, 6);
+      g.lineTo(px, py);
+    }
+    g.lineTo(x + w, y + 60);
+    g.closePath();
+    g.fillPath();
+  }
+
   drawReeds(x,y,count) { for(let i=0;i<count;i++) this.add.line(x+i*13,y+Phaser.Math.Between(-8,8),0,0,0,-Phaser.Math.Between(60,105),0x7aac6d,0.55).setDepth(8).setLineWidth(4); }
   drawWaterPlants(x,y) { for(let i=0;i<9;i++) this.add.ellipse(x+i*20,y+Phaser.Math.Between(-8,8),28,9,0xb7e5c7,0.45).setDepth(7); }
   drawFrog(x,y) { const c=this.add.container(x,y).setDepth(12); c.add(this.add.circle(0,0,24,0x74ba63,1)); c.add(this.add.circle(-9,-16,6,0xf9fff1,1)); c.add(this.add.circle(9,-16,6,0xf9fff1,1)); c.add(this.add.circle(-9,-16,2,0x222222,1)); c.add(this.add.circle(9,-16,2,0x222222,1)); return c; }
@@ -496,6 +518,8 @@ class LevelScene extends Phaser.Scene {
     this.player.setMaxVelocity(430, 900);
     this.feetOffset = 70;
     this.wasTerrainGrounded = false;
+    this.lastGroundY = this.getMainTerrainY(this.player.x);
+    this.shadowArt = this.add.ellipse(this.player.x, this.lastGroundY + 4, 58, 12, 0x07111d, 0.28).setDepth(46);
     this.playerArt = this.add.container(this.player.x, this.player.y).setDepth(50);
     this.bodyArt = this.add.ellipse(0, 28, 54, 82, 0xff9fc4, 1);
     this.headArt = this.add.circle(0, -26, 34, 0xffe6bf, 1);
@@ -602,14 +626,20 @@ class LevelScene extends Phaser.Scene {
   }
 
   updateTerrainContact() {
-    if (!this.player || !this.player.body) return;
+    if (!this.player || !this.player.body) return false;
     const terrainY = this.getTerrainYForPlayer();
+    this.lastGroundY = terrainY;
+    const targetY = terrainY - this.feetOffset;
     const feetY = this.player.y + this.feetOffset;
-    const fallingOrResting = this.player.body.velocity.y >= -30;
-    const closeEnoughToGround = feetY >= terrainY - (this.wasTerrainGrounded ? 95 : 18);
 
-    if (fallingOrResting && closeEnoughToGround) {
-      this.player.y = Phaser.Math.Linear(this.player.y, terrainY - this.feetOffset, this.wasTerrainGrounded ? 0.45 : 1);
+    // Only attach Amber to the terrain when she is landing or already walking on it.
+    // v6.2: no interpolation while grounded. That removes the "floating/bobbing" feeling.
+    const landingOrWalking = this.player.body.velocity.y >= -20;
+    const snapRange = this.wasTerrainGrounded ? 130 : 28;
+    const closeEnoughToGround = feetY >= terrainY - snapRange;
+
+    if (landingOrWalking && closeEnoughToGround) {
+      this.player.setY(targetY);
       this.player.body.velocity.y = 0;
       this.player.body.blocked.down = true;
       this.wasTerrainGrounded = true;
@@ -690,6 +720,12 @@ class LevelScene extends Phaser.Scene {
     if (this.player.y > this.worldH - 80) this.respawn();
     this.playerArt.setPosition(this.player.x, this.player.y);
     this.playerArt.setScale(this.facing < 0 ? -1 : 1, 1);
+    if (this.shadowArt) {
+      this.shadowArt.setPosition(this.player.x, (this.lastGroundY || this.player.y + this.feetOffset) + 4);
+      const airborne = Math.max(0, ((this.lastGroundY || 0) - (this.player.y + this.feetOffset)));
+      this.shadowArt.setScale(Phaser.Math.Clamp(1 - airborne / 320, 0.45, 1), 1);
+      this.shadowArt.setAlpha(Phaser.Math.Clamp(0.30 - airborne / 900, 0.08, 0.30));
+    }
     this.updateGardenReaction();
     this.updateCamera(false);
   }
