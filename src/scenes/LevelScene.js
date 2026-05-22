@@ -3,17 +3,15 @@ class LevelScene extends Phaser.Scene {
     super('LevelScene');
     this.collected = 0;
     this.totalFluffs = 1;
-    this.currentSpeed = 0;
     this.jumpCount = 0;
     this.maxJumps = 2;
     this.jumpWasDown = false;
-    this.jumpLocked = false;
     this.wasGrounded = false;
     this.facing = 1;
-    this.lastDoAt = 0;
     this.finished = false;
     this.inputLocked = true;
-    this.activeCheckpoint = { x: 230, y: 0 };
+    this.activeCheckpoint = { x: 360, y: 760 };
+    this.cameraY = 0;
   }
 
   create() {
@@ -26,30 +24,27 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // v5.0 Vertical World Foundation:
-    // compact levels, but with larger vertical composition so Fluistervelden
-    // feels bigger than it is. Camera is allowed to follow real height changes.
-    this.groundY = this.isPortrait ? this.visibleH - 150 : this.visibleH - 134;
-    this.worldBottom = this.visibleH + 1320;
-
-    this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
-    this.cameras.main.setBounds(0, 0, s.worldWidth, this.worldBottom);
+    this.worldW = s.worldWidth;
+    this.worldH = 1900;
+    this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
+    this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setZoom(this.worldZoom);
 
     if (window.FTTM.hideFinishPanel) window.FTTM.hideFinishPanel();
     if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(0, this.totalFluffs);
 
-    this.drawSky();
-    this.createLandscapeFromScratch();
-    this.createHomeAndGarden();
-    this.createLakeScene();
-    this.createParkScene();
-    this.createSideArea();
-    this.createMoonRevealArea();
-    this.createAtmosphere();
+    this.drawStorybookSky();
+    this.createCollisionWorld();
+    this.drawContinuousLandscape();
+    this.drawBackgroundSetpieces();
+    this.drawHome();
+    this.drawGarden();
+    this.drawLakeArea();
+    this.drawParkAndSideArea();
+    this.drawMoonReveal();
     this.createPlayer();
-    this.createCollectibles();
-    this.createInteractionZones();
+    this.createCollectiblesAndTriggers();
+    this.createAmbientLife();
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.overlap(this.player, this.fluffs, this.collectMoonFluff, null, this);
@@ -63,6 +58,7 @@ class LevelScene extends Phaser.Scene {
     this.scale.on('resize', () => { if (!this.finished) this.scene.restart(); });
   }
 
+  // ---------- UI / intro ----------
   setMessage(text, duration = 2200) {
     const el = document.getElementById('message-panel');
     if (!el) return;
@@ -73,778 +69,599 @@ class LevelScene extends Phaser.Scene {
   }
 
   startIntroSequence() {
-    this.setMessage('Amber hears a soft sound.', 2200);
-    const sound = this.add.text(150, this.groundY - 260, '♪', { fontFamily: 'Arial', fontSize: '34px', color: '#fff7c8' }).setOrigin(0.5).setDepth(60);
-    this.tweens.add({ targets: sound, x: sound.x + 110, y: sound.y - 42, alpha: 0, scale: 1.5, duration: 1500, ease: 'Sine.easeOut', onComplete: () => sound.destroy() });
-    this.time.delayedCall(1350, () => {
+    this.setMessage('Amber hoort iets buiten.', 2200);
+    const note = this.add.text(250, 610, '♪', { fontFamily: 'Arial', fontSize: '38px', color: '#fff2b8' }).setOrigin(0.5).setDepth(90);
+    this.tweens.add({ targets: note, x: 410, y: 565, alpha: 0, scale: 1.45, duration: 1500, ease: 'Sine.easeOut', onComplete: () => note.destroy() });
+    this.time.delayedCall(1200, () => {
       this.inputLocked = false;
-      this.setMessage('The garden is awake.', 2100);
+      this.setMessage('De Fluistervelden zijn wakker.', 2300);
     });
   }
 
-  drawSky() {
-    const s = window.FTTM.GameSettings;
-    this.add.rectangle(s.worldWidth / 2, this.worldBottom / 2, s.worldWidth, this.worldBottom, 0x102655).setScrollFactor(1).setDepth(-30);
-    this.add.rectangle(s.worldWidth / 2, this.groundY + 260, s.worldWidth, 560, 0x07152e).setDepth(-28);
+  // ---------- world drawing ----------
+  drawStorybookSky() {
+    const bg = this.add.graphics().setDepth(-60);
+    bg.fillGradientStyle(0x071632, 0x102c63, 0x112b5a, 0x06111f, 1);
+    bg.fillRect(0, 0, this.worldW, this.worldH);
 
-    // Distant parallax hills: simple + atmospheric, closer to Hoa/Ori than debug geometry.
-    this.drawDistantHillLayer(0, this.groundY + 40, 0x1a3b5f, 0.30, 0.28, 900);
-    this.drawDistantHillLayer(240, this.groundY + 10, 0x214a66, 0.24, 0.36, 720);
-    this.drawDistantHillLayer(70, this.groundY - 28, 0x2d5e6d, 0.18, 0.48, 520);
+    // distant blue valley layers
+    this.drawDistantHills(0, 1120, 0x16395b, 0.34, 0.22, 980);
+    this.drawDistantHills(300, 1040, 0x1f4d65, 0.28, 0.32, 760);
+    this.drawDistantHills(140, 970, 0x2d626e, 0.19, 0.43, 560);
 
-    // Stars and soft sky particles.
-    for (let i = 0; i < 115; i++) {
+    // night stars
+    for (let i = 0; i < 145; i++) {
       const star = this.add.circle(
-        Phaser.Math.Between(0, s.worldWidth),
-        Phaser.Math.Between(24, Math.max(90, this.groundY - 230)),
-        Phaser.Math.FloatBetween(0.7, 1.9),
+        Phaser.Math.Between(0, this.worldW),
+        Phaser.Math.Between(35, 800),
+        Phaser.Math.FloatBetween(0.7, 2.0),
         0xffffff,
-        Phaser.Math.FloatBetween(0.14, 0.52)
-      ).setScrollFactor(0.35).setDepth(-14);
-      this.tweens.add({ targets: star, alpha: star.alpha * 0.42, duration: Phaser.Math.Between(1300, 3000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        Phaser.Math.FloatBetween(0.15, 0.52)
+      ).setScrollFactor(0.38).setDepth(-42);
+      this.tweens.add({ targets: star, alpha: star.alpha * 0.35, duration: Phaser.Math.Between(1400, 3200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
 
-    // Rainbow near the lower lake valley: background payoff, not a foreground prop.
-    this.rainbow = this.add.graphics().setDepth(-10).setScrollFactor(0.55);
-    const rx = 1980, ry = this.groundY - 42;
-    const colors = [0xff8fa3, 0xffd38e, 0xfff6a3, 0xbef7a1, 0x9bd5ff, 0xc9a6ff];
-    colors.forEach((c, i) => {
-      this.rainbow.lineStyle(9, c, 0.27);
-      this.rainbow.beginPath();
-      this.rainbow.arc(rx, ry, 270 - i * 15, Math.PI, Math.PI * 2, false);
-      this.rainbow.strokePath();
-    });
-
-    // First moon reveal, high and spacious. Clouds uncover it when Amber reaches the hill.
-    this.revealMoon = this.add.container(4880, this.groundY - 510).setDepth(-4);
-    this.revealMoon.setAlpha(0);
-    this.revealMoon.add(this.add.circle(0, 0, 124, 0xffefb8, 0.10));
-    this.revealMoon.add(this.add.circle(0, 0, 78, 0xffefb8, 0.88));
-    this.revealMoon.add(this.add.circle(30, -16, 64, 0x102655, 0.34));
-    this.moonClouds = [];
-    for (const c of [[4820, this.groundY - 438, 185, 44], [4930, this.groundY - 410, 235, 52], [4735, this.groundY - 392, 160, 40]]) {
-      const cloud = this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.11).setDepth(-3).setScrollFactor(0.85);
-      this.moonClouds.push(cloud);
+    // soft clouds
+    for (const c of [[880,315,190,40],[1110,280,150,34],[3050,305,230,42],[4300,260,300,55],[5000,350,220,42]]) {
+      this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.08).setDepth(-40).setScrollFactor(0.45);
     }
+
+    // big moon in far right sky
+    this.moon = this.add.container(4820, 360).setDepth(-32).setScrollFactor(0.72);
+    this.moon.add(this.add.circle(0, 0, 132, 0xfff1bf, 0.11));
+    this.moon.add(this.add.circle(0, 0, 82, 0xfff1bf, 0.9));
+    this.moon.add(this.add.circle(24, -20, 60, 0x102c63, 0.25));
+    this.moon.setAlpha(0.18);
   }
 
-  drawDistantHillLayer(offsetX, baseY, color, alpha, scroll, width) {
-    const s = window.FTTM.GameSettings;
-    const g = this.add.graphics().setDepth(-16).setScrollFactor(scroll);
+  drawDistantHills(offset, baseY, color, alpha, scroll, step) {
+    const g = this.add.graphics().setDepth(-48).setScrollFactor(scroll);
     g.fillStyle(color, alpha);
     g.beginPath();
-    g.moveTo(-200, baseY + 360);
-    g.lineTo(-200, baseY + 70);
-    for (let x = -200; x <= s.worldWidth + 600; x += width) {
-      const peakX = x + width * 0.5 + offsetX % 150;
-      const peakY = baseY - Phaser.Math.Between(20, 96);
-      this.quadLine(g, x, baseY + Phaser.Math.Between(20, 55), peakX, peakY, x + width, baseY + Phaser.Math.Between(8, 70), 18);
+    g.moveTo(-300, this.worldH);
+    g.lineTo(-300, baseY);
+    for (let x = -300; x <= this.worldW + 500; x += step) {
+      const cx = x + step * 0.5 + (offset % 180);
+      const cy = baseY - Phaser.Math.Between(60, 180);
+      this.curveTo(g, x, baseY + Phaser.Math.Between(-20, 40), cx, cy, x + step, baseY + Phaser.Math.Between(-10, 50), 16);
     }
-    g.lineTo(s.worldWidth + 700, baseY + 390);
+    g.lineTo(this.worldW + 500, this.worldH);
     g.closePath();
     g.fillPath();
   }
 
-  createLandscapeFromScratch() {
+  createCollisionWorld() {
     this.platforms = this.physics.add.staticGroup();
     this.checkpoints = this.physics.add.staticGroup();
-    this.landLayers = this.add.graphics().setDepth(-2);
-    this.grassLayer = this.add.graphics().setDepth(5);
-    const gy = this.groundY;
 
-    // v5.0 Vertical World Foundation:
-    // Compact, but with strong height variation. The main route remains readable,
-    // while side areas use vertical space to feel hidden and discovered.
-    this.addGroundSegment(0, gy - 285, 660, 0x6fae72, 'home hill', { left: 58, right: 18, dip: 22 });
-    this.addGroundSegment(610, gy - 255, 460, 0x74b875, 'flower garden high', { left: 16, right: 42, dip: 18 });
-    this.addGroundSegment(1010, gy - 182, 380, 0x6aa76f, 'soft descent 1', { left: 30, right: 56, dip: 28 });
-    this.addGroundSegment(1340, gy - 88, 370, 0x609b68, 'soft descent 2', { left: 45, right: 60, dip: 34 });
-    this.addGroundSegment(1640, gy + 42, 780, 0x5d9365, 'low lake valley', { left: 36, right: 20, dip: 16 });
-    this.addGroundSegment(2350, gy - 12, 360, 0x659d69, 'lake exit slope', { left: 28, right: 42, dip: 20 });
-    this.addGroundSegment(2650, gy - 96, 360, 0x6ba66e, 'climb to park 1', { left: 32, right: 58, dip: 26 });
-    this.addGroundSegment(2960, gy - 205, 800, 0x657f68, 'upper park path', { left: 42, right: 22, dip: 16 });
-    this.addGroundSegment(3720, gy - 170, 360, 0x647b66, 'park exit ledge', { left: 18, right: 54, dip: 20 });
-    this.addGroundSegment(4010, gy - 245, 430, 0x6ba76e, 'moon approach climb', { left: 35, right: 62, dip: 26 });
-    this.addGroundSegment(4390, gy - 335, 980, 0x73b674, 'high moon reveal meadow', { left: 54, right: 24, dip: 20 });
-
-    // Nature-integrated traversal: tree branches and small root ledges instead of floating blocks.
-    this.addSoftBranch(1510, gy - 220, 155, 20);
-    this.addSoftBranch(1608, gy - 292, 170, 20);
-    this.addSoftBranch(1760, gy - 250, 120, 18);
-
-    // Hidden lower side area below the park. It should feel like choosing a secret path.
-    this.addGroundSegment(3260, gy + 96, 560, 0x4f835d, 'hidden lower blue-grape nook', { left: 24, right: 18, dip: 12 });
-    this.addSoftBranch(3198, gy - 96, 132, 18); // entry hint
-    this.addSoftBranch(3845, gy - 96, 150, 18); // return hint
-
-    // Extra foreground silhouettes for depth. Non-colliding.
-    this.drawForegroundGrassBand(520, gy - 220, 380);
-    this.drawForegroundGrassBand(1690, gy + 66, 680);
-    this.drawForegroundGrassBand(3000, gy - 180, 720);
-    this.drawForegroundGrassBand(4400, gy - 310, 760);
-
-    // Invisible checkpoints.
-    this.addCheckpoint(235, gy - 356);
-    this.addCheckpoint(1120, gy - 250);
-    this.addCheckpoint(1690, gy - 30);
-    this.addCheckpoint(2830, gy - 170);
-    this.addCheckpoint(3430, gy + 55);
-    this.addCheckpoint(4440, gy - 405);
+    // Invisible colliders follow the painted path. The visible landscape is drawn separately.
+    const rects = [
+      [0, 815, 880, 70],          // home hill
+      [750, 865, 420, 70],
+      [1080, 930, 410, 70],
+      [1400, 1010, 420, 70],
+      [1740, 1105, 560, 70],      // lower lake path
+      [2250, 1045, 370, 70],
+      [2550, 965, 360, 70],
+      [2860, 870, 670, 70],       // park hill
+      [3490, 930, 350, 70],
+      [3780, 830, 520, 70],       // moon approach
+      [4260, 745, 1050, 70],      // high reveal meadow
+      [3140, 1170, 630, 70],      // hidden side area lower path
+      [1450, 805, 190, 30],       // tree branch 1
+      [1555, 710, 190, 30],       // tree branch 2
+      [1660, 768, 140, 28],       // tree branch 3
+    ];
+    for (const [x,y,w,h] of rects) {
+      const p = this.platforms.create(x + w/2, y + h/2, null);
+      p.setDisplaySize(w, h).setVisible(false).refreshBody();
+    }
   }
 
-
-
-  drawForegroundGrassBand(x, y, w) {
-    const g = this.add.graphics().setDepth(24).setAlpha(0.28);
-    g.fillStyle(0x0b261f, 1);
+  drawContinuousLandscape() {
+    // Main continuous terrain silhouette. This is the big change for v6:
+    // one storybook hillside instead of loose platform rectangles.
+    const g = this.add.graphics().setDepth(-5);
+    g.fillStyle(0x5f9b63, 1);
     g.beginPath();
-    g.moveTo(x - 60, y + 90);
-    for (let i = 0; i <= 12; i++) {
-      const px = x + (w / 12) * i;
-      const py = y + Phaser.Math.Between(20, 58);
-      g.lineTo(px, py);
-      g.lineTo(px + Phaser.Math.Between(8, 24), y + Phaser.Math.Between(-8, 22));
-    }
-    g.lineTo(x + w + 80, y + 120);
-    g.lineTo(x - 60, y + 120);
+    g.moveTo(-100, this.worldH);
+    g.lineTo(-100, 785);
+    this.curveTo(g, -100, 785, 350, 760, 790, 815, 18);
+    this.curveTo(g, 790, 815, 1150, 850, 1480, 975, 18);
+    this.curveTo(g, 1480, 975, 1900, 1165, 2300, 1080, 18);
+    this.curveTo(g, 2300, 1080, 2550, 1010, 2880, 890, 18);
+    this.curveTo(g, 2880, 890, 3200, 805, 3550, 920, 18);
+    this.curveTo(g, 3550, 920, 3820, 880, 4250, 775, 18);
+    this.curveTo(g, 4250, 775, 4740, 705, 5500, 745, 24);
+    g.lineTo(5500, this.worldH);
     g.closePath();
     g.fillPath();
+
+    // darker underside depth
+    const under = this.add.graphics().setDepth(-6);
+    under.fillStyle(0x234c45, 0.72);
+    under.beginPath();
+    under.moveTo(-100, this.worldH);
+    under.lineTo(-100, 885);
+    this.curveTo(under, -100, 885, 500, 920, 1050, 960, 16);
+    this.curveTo(under, 1050, 960, 1700, 1190, 2300, 1190, 16);
+    this.curveTo(under, 2300, 1190, 3050, 1010, 3650, 1010, 16);
+    this.curveTo(under, 3650, 1010, 4300, 860, 5500, 840, 16);
+    under.lineTo(5500, this.worldH);
+    under.closePath();
+    under.fillPath();
+
+    // bright grassy top line and winding path
+    const top = this.add.graphics().setDepth(4);
+    top.lineStyle(18, 0xaddf7c, 0.72);
+    top.beginPath();
+    top.moveTo(-60, 785);
+    this.curveTo(top, -60, 785, 350, 760, 790, 815, 20);
+    this.curveTo(top, 790, 815, 1150, 850, 1480, 975, 20);
+    this.curveTo(top, 1480, 975, 1900, 1165, 2300, 1080, 20);
+    this.curveTo(top, 2300, 1080, 2550, 1010, 2880, 890, 20);
+    this.curveTo(top, 2880, 890, 3200, 805, 3550, 920, 20);
+    this.curveTo(top, 3550, 920, 3820, 880, 4250, 775, 20);
+    this.curveTo(top, 4250, 775, 4740, 705, 5480, 745, 26);
+    top.strokePath();
+
+    const path = this.add.graphics().setDepth(3);
+    path.lineStyle(34, 0xbfa073, 0.28);
+    path.beginPath();
+    path.moveTo(360, 807);
+    this.curveTo(path, 360, 807, 820, 850, 1280, 960, 16);
+    this.curveTo(path, 1280, 960, 1700, 1115, 2260, 1090, 16);
+    this.curveTo(path, 2260, 1090, 2650, 955, 3040, 880, 16);
+    this.curveTo(path, 3040, 880, 3330, 830, 3600, 920, 14);
+    this.curveTo(path, 3600, 920, 4100, 805, 4660, 745, 18);
+    path.strokePath();
+
+    // Hidden lower side area. It has its own continuous shape.
+    const sg = this.add.graphics().setDepth(-4);
+    sg.fillStyle(0x4f875a, 0.96);
+    sg.beginPath();
+    sg.moveTo(3030, this.worldH);
+    sg.lineTo(3030, 1170);
+    this.curveTo(sg, 3030, 1170, 3350, 1130, 3780, 1175, 18);
+    sg.lineTo(3780, this.worldH);
+    sg.closePath();
+    sg.fillPath();
+
+    const sgTop = this.add.graphics().setDepth(4);
+    sgTop.lineStyle(16, 0x9bce73, 0.62);
+    sgTop.beginPath();
+    sgTop.moveTo(3040, 1170);
+    this.curveTo(sgTop, 3040, 1170, 3350, 1130, 3760, 1175, 18);
+    sgTop.strokePath();
+
+    // foreground dark vignette grasses for depth
+    this.drawForegroundClumps();
   }
 
-  quadLine(g, x0, y0, cx, cy, x1, y1, steps = 14) {
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const mt = 1 - t;
-      const x = mt * mt * x0 + 2 * mt * t * cx + t * t * x1;
-      const y = mt * mt * y0 + 2 * mt * t * cy + t * t * y1;
+  drawForegroundClumps() {
+    const g = this.add.graphics().setDepth(30).setAlpha(0.32);
+    g.fillStyle(0x071c19, 1);
+    const clumps = [[-80,1330,720],[1600,1410,900],[3000,1350,900],[4300,1180,900]];
+    for (const [x,y,w] of clumps) {
+      g.beginPath();
+      g.moveTo(x, this.worldH);
       g.lineTo(x, y);
+      for (let i=0;i<16;i++) {
+        const px = x + i*w/15;
+        g.lineTo(px, y - Phaser.Math.Between(10,70));
+        g.lineTo(px + Phaser.Math.Between(20,60), y + Phaser.Math.Between(5,40));
+      }
+      g.lineTo(x+w, this.worldH);
+      g.closePath();
+      g.fillPath();
     }
   }
 
-  addGroundSegment(x, topY, w, color, label, shape = {}) {
-    const h = 44;
-
-    // Collision stays simple, wide and child-friendly.
-    const collider = this.add.rectangle(x + w / 2, topY + h / 2, w, h, 0x000000, 0);
-    this.physics.add.existing(collider, true);
-    this.platforms.add(collider);
-
-    // Visible terrain is intentionally more organic than the collision.
-    const leftLift = shape.left || 24;
-    const rightLift = shape.right || 24;
-    const dip = shape.dip || 22;
-    const g = this.add.graphics().setDepth(0);
-
-    // Main hill body.
-    g.fillStyle(color, 1);
-    g.beginPath();
-    g.moveTo(x - 34, topY + 40);
-    this.quadLine(g, x - 34, topY + 40, x + w * 0.18, topY - leftLift, x + w * 0.42, topY + dip * 0.25);
-    this.quadLine(g, x + w * 0.42, topY + dip * 0.25, x + w * 0.72, topY + dip, x + w + 34, topY - rightLift * 0.45);
-    g.lineTo(x + w + 72, topY + 190);
-    g.lineTo(x - 72, topY + 190);
-    g.closePath();
-    g.fillPath();
-
-    // Soft darker underside for depth.
-    g.fillStyle(0x1f453d, 0.22);
-    g.beginPath();
-    g.moveTo(x - 20, topY + 80);
-    this.quadLine(g, x - 20, topY + 80, x + w * 0.25, topY + 48, x + w * 0.58, topY + 72);
-    this.quadLine(g, x + w * 0.58, topY + 72, x + w * 0.82, topY + 94, x + w + 38, topY + 60);
-    g.lineTo(x + w + 58, topY + 182);
-    g.lineTo(x - 56, topY + 182);
-    g.closePath();
-    g.fillPath();
-
-    // Curved grass highlight along the playable top.
-    const grass = this.add.graphics().setDepth(6);
-    grass.lineStyle(9, 0xc7ef8c, 0.92);
-    grass.beginPath();
-    grass.moveTo(x - 14, topY + 4);
-    this.quadLine(grass, x - 14, topY + 4, x + w * 0.24, topY - 8, x + w * 0.50, topY + 5, 10);
-    this.quadLine(grass, x + w * 0.50, topY + 5, x + w * 0.76, topY + 14, x + w + 16, topY + 1, 10);
-    grass.strokePath();
-
-    // Small grass tufts, sparse and soft.
-    for (let i = 0; i < Math.max(5, Math.floor(w / 110)); i++) {
-      const tx = x + 28 + i * (w - 56) / Math.max(1, Math.floor(w / 110));
-      const ty = topY + Phaser.Math.Between(-2, 10);
-      const tuft = this.add.container(tx, ty).setDepth(8);
-      tuft.add(this.add.rectangle(-5, 2, 2, 18, 0xaee883, 0.72).setAngle(-18));
-      tuft.add(this.add.rectangle(0, 0, 2, 22, 0xc7ef8c, 0.74));
-      tuft.add(this.add.rectangle(5, 2, 2, 18, 0xaee883, 0.72).setAngle(18));
-      this.tweens.add({ targets: tuft, angle: Phaser.Math.Between(-3, 3), duration: Phaser.Math.Between(1100, 2100), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  drawBackgroundSetpieces() {
+    // distant warm village lights in the valley
+    for (let i=0;i<55;i++) {
+      const x = Phaser.Math.Between(2600, 5100);
+      const y = Phaser.Math.Between(760, 1080);
+      const l = this.add.circle(x, y, Phaser.Math.FloatBetween(2,5), 0xffd98e, 0.55).setDepth(-20).setScrollFactor(0.62);
+      this.tweens.add({ targets:l, alpha:0.18, yoyo:true, repeat:-1, duration:Phaser.Math.Between(1300,3000), ease:'Sine.easeInOut'});
     }
 
-    if (label) {
-      const t = this.add.text(x + 14, topY + 58, '', { fontFamily: 'Arial', fontSize: '12px', color: '#ffffff' }).setAlpha(0);
-      t.setData('label', label);
+    // large trees as scene anchors
+    this.drawTree(1500, 1050, 1.05, -1);
+    this.drawTree(3140, 870, 1.15, -1);
+    this.drawTree(4680, 735, 0.95, -1);
+
+    // lamps along the main path
+    for (const [x,y] of [[780,800],[2360,1038],[2970,865],[3370,860],[4050,795]]) this.drawLamp(x,y);
+  }
+
+  drawHome() {
+    const c = this.add.container(430, 690).setDepth(8);
+
+    // unified cozy cottage silhouette
+    const body = this.add.graphics();
+    body.fillStyle(0xf8d79b, 1);
+    body.fillRoundedRect(-150, -12, 300, 250, 18);
+    body.fillStyle(0xe7bb77, 1);
+    body.fillRect(-160, -18, 320, 20);
+    c.add(body);
+
+    const roof = this.add.graphics();
+    roof.fillStyle(0xc56c58, 1);
+    roof.beginPath();
+    roof.moveTo(-190, -8);
+    roof.lineTo(0, -195);
+    roof.lineTo(205, -8);
+    roof.closePath();
+    roof.fillPath();
+    roof.lineStyle(8, 0x9d4f45, 0.65);
+    roof.strokeTriangle(-190,-8,0,-195,205,-8);
+    c.add(roof);
+
+    // warm windows + door
+    this.addWindow(c, -86, 58);
+    this.addWindow(c, 68, 58);
+    this.addWindow(c, -86, 145);
+    this.addWindow(c, 68, 145);
+    const door = this.add.graphics();
+    door.fillStyle(0x8b5d36, 1);
+    door.fillRoundedRect(-34, 132, 68, 106, 18);
+    door.fillStyle(0xffe7a0, 1);
+    door.fillCircle(18, 181, 5);
+    c.add(door);
+
+    // chimney and smoke integrated into roof
+    const chimney = this.add.graphics();
+    chimney.fillStyle(0x8a5437, 1);
+    chimney.fillRoundedRect(96, -160, 54, 132, 8);
+    chimney.fillStyle(0xb6b0a7, 1);
+    chimney.fillRoundedRect(86, -174, 74, 20, 6);
+    c.add(chimney);
+    for (let i=0;i<5;i++) {
+      const puff = this.add.circle(128 + i*38, -205 - i*26, 24+i*3, 0xd5d7e0, 0.18-i*0.015);
+      c.add(puff);
+      this.tweens.add({ targets:puff, y:puff.y-18, alpha:puff.alpha*0.45, duration:1800+i*260, yoyo:true, repeat:-1, ease:'Sine.easeInOut'});
+    }
+
+    // flowers and tiny fence around home
+    for (let i=0;i<24;i++) this.drawTinyFlower(160 + i*24, 800 + Phaser.Math.Between(-12,18), 8);
+    this.drawFence(690, 840, 520, 0.95);
+  }
+
+  addWindow(container, x, y) {
+    const g = this.add.graphics();
+    g.fillStyle(0xffe7a0, 0.95);
+    g.fillRoundedRect(x-30, y-30, 60, 60, 12);
+    g.lineStyle(5, 0xb7d8e9, 0.85);
+    g.strokeRoundedRect(x-30, y-30, 60, 60, 12);
+    g.lineStyle(3, 0xb7d8e9, 0.75);
+    g.lineBetween(x, y-28, x, y+28);
+    g.lineBetween(x-28, y, x+28, y);
+    container.add(g);
+  }
+
+  drawGarden() {
+    // flowers move when Amber walks through them
+    this.gardenFlowers = [];
+    for (let i=0;i<38;i++) {
+      const x = 760 + i*17 + Phaser.Math.Between(-5,5);
+      const y = 830 + Phaser.Math.Between(-12,18);
+      const stem = this.add.line(x, y, 0, 0, 0, -36, 0x9fd58a, 0.65).setDepth(9).setLineWidth(3);
+      const blossom = this.add.circle(x, y-38, Phaser.Math.Between(6,10), Phaser.Math.RND.pick([0xffb3c7,0xfbe9a0,0xc6dcff,0xd7b4ff]), 0.9).setDepth(10);
+      this.gardenFlowers.push({stem, blossom, x, y});
     }
   }
 
-  addSoftBranch(x, y, w, h) {
-    const branchCollider = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0).setDepth(14);
-    this.physics.add.existing(branchCollider, true);
-    this.platforms.add(branchCollider);
+  drawLakeArea() {
+    // pond as lower quiet payoff, with rainbow behind
+    this.drawRainbow(1900, 875, 520, 0.32);
+    const water = this.add.graphics().setDepth(2);
+    water.fillStyle(0x75c7d0, 0.55);
+    water.fillEllipse(2050, 1236, 900, 170);
+    water.fillStyle(0xb7fff4, 0.18);
+    water.fillEllipse(2075, 1214, 560, 40);
 
-    const g = this.add.graphics().setDepth(14);
-    g.fillStyle(0x8f633b, 1);
+    // dock/bench, tree > bench > meertje composition
+    this.drawBench(1725, 1075, 1.0);
+    this.drawReeds(1840, 1160, 16);
+    this.drawFrog(2130, 1165);
+    this.drawWaterPlants(2310, 1190);
+  }
+
+  drawParkAndSideArea() {
+    // upper park identity, simplified but warm
+    this.drawBench(3120, 845, 0.95);
+    this.drawBench(3440, 870, 0.9);
+    this.drawTrash(3295, 875);
+    this.drawTrash(3645, 910);
+    this.drawLamp(3000, 845);
+    this.drawLamp(3580, 890);
+
+    // birds eating near path
+    for (const [x,y] of [[3060,830],[3175,850],[3520,885],[3610,895]]) this.drawBird(x,y);
+
+    // hidden side area: foreground bushes hide the drop
+    const bush = this.add.graphics().setDepth(18);
+    bush.fillStyle(0x2c6d48, 0.92);
+    for (let i=0;i<13;i++) bush.fillCircle(3030+i*42, 930+Phaser.Math.Between(-10,20), Phaser.Math.Between(34,52));
+    this.drawTinyFlower(3410, 1134, 11, 0x9bc8ff);
+    this.drawTinyFlower(3445, 1122, 9, 0x9bc8ff);
+    this.add.text(3435, 1094, 'Blauwe Druifjes', { fontFamily:'Arial', fontSize:'28px', color:'#d9eeff', stroke:'#102655', strokeThickness:5 }).setOrigin(0.5).setDepth(16).setAlpha(0.0);
+  }
+
+  drawMoonReveal() {
+    // clouds that disappear when the reveal trigger is reached
+    this.revealClouds = [];
+    for (const c of [[4380,640,210,52],[4560,610,260,58],[4740,650,190,44]]) {
+      const cloud = this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.12).setDepth(-22).setScrollFactor(0.72);
+      this.revealClouds.push(cloud);
+    }
+
+    // finish light on final meadow
+    this.finishGlow = this.add.container(5050, 690).setDepth(20);
+    this.finishGlow.add(this.add.circle(0,0,70,0xffefb8,0.10));
+    this.finishGlow.add(this.add.circle(0,0,32,0xffefb8,0.55));
+    this.finishGlow.setAlpha(0.75);
+  }
+
+  // ---------- props ----------
+  drawTree(x, y, scale=1, depth=0) {
+    const c = this.add.container(x, y).setDepth(depth);
+    const trunk = this.add.graphics();
+    trunk.fillStyle(0x6a472c, 1);
+    trunk.fillRoundedRect(-32*scale, -210*scale, 64*scale, 230*scale, 20*scale);
+    c.add(trunk);
+    const leafColors = [0x3f8a51,0x4d9b5b,0x2f7447,0x5aaa63];
+    for (let i=0;i<12;i++) {
+      const lx = Phaser.Math.Between(-130,130)*scale;
+      const ly = Phaser.Math.Between(-330,-170)*scale;
+      const r = Phaser.Math.Between(76,118)*scale;
+      c.add(this.add.circle(lx, ly, r, leafColors[i%leafColors.length], 0.96));
+    }
+    // integrated branches for climbing tree near lake
+    if (x < 1800) {
+      this.drawBranch(x-68, y-248, 180, 0.96);
+      this.drawBranch(x+45, y-342, 185, 0.9);
+      this.drawBranch(x+140, y-282, 130, 0.82);
+    }
+    return c;
+  }
+
+  drawBranch(x,y,w,scale=1) {
+    const g = this.add.graphics().setDepth(12);
+    g.lineStyle(20*scale, 0x8d6239, 1);
     g.beginPath();
-    g.moveTo(x, y + h * 0.55);
-    this.quadLine(g, x, y + h * 0.55, x + w * 0.35, y - 6, x + w, y + h * 0.35, 10);
-    g.lineTo(x + w, y + h + 4);
-    this.quadLine(g, x + w, y + h + 4, x + w * 0.45, y + h + 10, x, y + h + 2, 10);
-    g.closePath();
-    g.fillPath();
-    g.lineStyle(3, 0xc7924e, 0.65);
+    g.moveTo(x, y);
+    this.curveTo(g, x, y, x+w*.5, y-12, x+w, y+4, 10);
+    g.strokePath();
+    g.lineStyle(5, 0xc5965d, 0.5);
     g.beginPath();
-    g.moveTo(x + 8, y + h * 0.45);
-    this.quadLine(g, x + 8, y + h * 0.45, x + w * 0.42, y, x + w - 8, y + h * 0.35, 10);
+    g.moveTo(x+8, y-5);
+    this.curveTo(g, x+8, y-5, x+w*.5, y-18, x+w-10, y-2, 10);
     g.strokePath();
   }
 
-  addCheckpoint(x, y) {
-    const zone = this.add.zone(x, y, 150, 180);
-    this.physics.add.existing(zone, true);
-    zone.setData('spawnX', x);
-    zone.setData('spawnY', y - 34);
-    this.checkpoints.add(zone);
+  drawBench(x, y, scale=1) {
+    const g = this.add.graphics().setDepth(12);
+    g.fillStyle(0x8d5a34,1);
+    g.fillRoundedRect(x-75*scale, y-35*scale, 150*scale, 22*scale, 6*scale);
+    g.fillRoundedRect(x-65*scale, y-5*scale, 130*scale, 20*scale, 6*scale);
+    g.fillStyle(0x5c3b25,1);
+    g.fillRect(x-52*scale, y+15*scale, 13*scale, 50*scale);
+    g.fillRect(x+42*scale, y+15*scale, 13*scale, 50*scale);
   }
 
-  createHomeAndGarden() {
-    const gy = this.groundY;
-
-    // Amber's house v4.1: one cohesive, readable shape instead of loose blocks.
-    this.house = this.add.container(270, gy - 330).setDepth(10);
-
-    // House shadow / hill contact.
-    this.house.add(this.add.ellipse(0, 188, 230, 42, 0x1d3a34, 0.22));
-
-    // Main body and side volume connect as one house.
-    this.house.add(this.add.rectangle(0, 86, 178, 154, 0xf5d29b, 1));
-    this.house.add(this.add.rectangle(0, 10, 190, 16, 0xe6bd83, 1));
-
-    // Roof as a single large roof with underside trim.
-    this.house.add(this.add.triangle(0, -18, -112, 72, 112, 72, 0, -86, 0xd0726c));
-    this.house.add(this.add.rectangle(0, 72, 206, 12, 0xb85f61, 1));
-
-    // Chimney attached to roof.
-    this.house.add(this.add.rectangle(58, -56, 30, 78, 0x875b45, 1));
-    this.house.add(this.add.rectangle(58, -100, 42, 18, 0xb0bfd6, 0.55));
-
-    // Door and warm windows.
-    this.house.add(this.add.rectangle(0, 154, 44, 78, 0x8a5a3c, 1));
-    this.house.add(this.add.circle(14, 154, 3, 0xffefaa, 1));
-    for (const w of [[-48, 82], [48, 82], [-48, 28], [48, 28]]) {
-      this.house.add(this.add.rectangle(w[0], w[1], 38, 34, 0x9bd7ff, 0.88));
-      this.house.add(this.add.rectangle(w[0], w[1], 22, 21, 0xfff1b0, 0.26));
-      this.house.add(this.add.rectangle(w[0], w[1], 4, 34, 0x6fa8c8, 0.38));
-      this.house.add(this.add.rectangle(w[0], w[1], 38, 4, 0x6fa8c8, 0.38));
-    }
-
-    // Tiny path and flowers around the house to make it feel rooted.
-    this.add.ellipse(275, gy - 111, 90, 30, 0xd8c293, 0.34).setDepth(6);
-    for (const fx of [155, 190, 360, 392]) {
-      this.add.rectangle(fx, gy - 188, 3, 28, 0x7fc46a, 0.84).setDepth(9);
-      this.add.circle(fx, gy - 206, 6, 0xffc9e8, 0.92).setDepth(11);
-    }
-
-    // Little smoke puffs.
-    for (let i = 0; i < 4; i++) {
-      const puff = this.add.circle(336 + i * 18, gy - 452 - i * 18, 13 + i * 3, 0xffffff, 0.10).setDepth(9);
-      this.tweens.add({ targets: puff, y: puff.y - 28, x: puff.x + 14, alpha: 0.02, duration: 2600 + i * 400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-
-    // Garden fence and flowers that react when Amber walks through them.
-    this.gardenFlowers = [];
-    for (let i = 0; i < 18; i++) {
-      const x = 590 + i * 22;
-      const y = gy - 242 - Phaser.Math.Between(0, 20);
-      const stem = this.add.rectangle(x, y + 18, 3, 36, 0x7fc46a, 0.92).setDepth(9);
-      const bloom = this.add.circle(x, y, Phaser.Math.Between(5, 8), Phaser.Math.RND.pick([0xffc9e8, 0xe1d4ff, 0xfff0a6, 0xbee9ff]), 0.94).setDepth(11);
-      const flower = this.add.container(0, 0, [stem, bloom]);
-      flower.setData('baseX', x);
-      flower.setData('baseY', y);
-      this.gardenFlowers.push(flower);
-    }
-    for (let i = 0; i < 7; i++) {
-      this.add.rectangle(560 + i * 64, gy - 226, 7, 64, 0xd7bd86, 0.9).setDepth(8);
-      this.add.rectangle(560 + i * 64, gy - 251, 52, 7, 0xd7bd86, 0.82).setDepth(8);
+  drawFence(x, y, w, scale=1) {
+    const g = this.add.graphics().setDepth(13);
+    g.lineStyle(10*scale, 0xb8945b, 0.88);
+    g.lineBetween(x, y, x+w, y-8);
+    g.lineBetween(x, y+40, x+w, y+32);
+    for (let i=0;i<=8;i++) {
+      const px = x + i*w/8;
+      g.lineStyle(8*scale, 0xc8a56a, 0.95);
+      g.lineBetween(px, y-38, px, y+58);
     }
   }
 
-
-  createLakeScene() {
-    const gy = this.groundY;
-
-    // Desired composition: Tree -> Bench -> Lake, with rainbow as background payoff.
-    // This entire scene sits in the lower valley, so the dynamic camera has a real reason to descend.
-    this.drawClimbTree(1575, gy - 215);
-    this.drawBench(1845, gy + 8);
-
-    // Lake after the bench, broad and calm.
-    this.lake = this.add.ellipse(2100, gy + 118, 580, 104, 0x70b8cf, 0.52).setDepth(3);
-    this.add.ellipse(2100, gy + 124, 470, 54, 0xa7e2eb, 0.30).setDepth(4);
-    this.add.ellipse(2100, gy + 90, 330, 18, 0xffffff, 0.10).setDepth(5);
-
-    for (let i = 0; i < 16; i++) {
-      const reed = this.add.rectangle(1850 + i * 34, gy + 92, 4, Phaser.Math.Between(38, 78), 0x8dcc75, 0.84).setOrigin(0.5, 1).setDepth(7);
-      this.tweens.add({ targets: reed, angle: Phaser.Math.Between(-8, 8), duration: Phaser.Math.Between(900, 1700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-
-    this.frog = this.add.text(2165, gy + 58, '🐸', { fontSize: '28px' }).setDepth(12).setAlpha(0.88);
-    this.tweens.add({ targets: this.frog, y: gy + 40, duration: 500, yoyo: true, repeat: -1, repeatDelay: 2600, ease: 'Sine.easeOut' });
+  drawLamp(x,y) {
+    const g = this.add.graphics().setDepth(12);
+    g.lineStyle(8,0x304044,1);
+    g.lineBetween(x,y+72,x,y-28);
+    g.fillStyle(0xffe698,0.9);
+    g.fillCircle(x,y-42,20);
+    g.fillStyle(0xffe698,0.15);
+    g.fillCircle(x,y-42,58);
   }
 
-
-  drawBench(x, y) {
-    this.add.rectangle(x, y, 96, 12, 0x8b5a3b).setDepth(15);
-    this.add.rectangle(x, y - 22, 100, 10, 0x9a6542).setDepth(15);
-    this.add.rectangle(x - 36, y + 25, 9, 50, 0x5a3a2a).setDepth(14);
-    this.add.rectangle(x + 36, y + 25, 9, 50, 0x5a3a2a).setDepth(14);
+  drawTinyFlower(x,y,r=8,color=null) {
+    const col = color || Phaser.Math.RND.pick([0xffb3c7,0xfbe9a0,0xc6dcff,0xd7b4ff,0xffffff]);
+    this.add.line(x,y,0,0,0,-26,0x96c783,0.55).setDepth(8).setLineWidth(3);
+    this.add.circle(x,y-30,r,col,0.86).setDepth(9);
   }
 
-  drawClimbTree(x, y) {
-    this.add.rectangle(x, y + 145, 34, 260, 0x7d5637).setDepth(9);
-    this.add.circle(x - 52, y + 45, 74, 0x4d925c).setDepth(10);
-    this.add.circle(x + 30, y + 18, 90, 0x58a363).setDepth(10);
-    this.add.circle(x + 92, y + 70, 58, 0x4d925c).setDepth(10);
-    for (const a of [[x - 30, y + 22], [x + 28, y - 8], [x + 75, y + 76]]) {
-      this.add.circle(a[0], a[1], 7, 0xff6b6b).setDepth(16);
+  drawReeds(x,y,count) { for(let i=0;i<count;i++) this.add.line(x+i*13,y+Phaser.Math.Between(-8,8),0,0,0,-Phaser.Math.Between(60,105),0x7aac6d,0.55).setDepth(8).setLineWidth(4); }
+  drawWaterPlants(x,y) { for(let i=0;i<9;i++) this.add.ellipse(x+i*20,y+Phaser.Math.Between(-8,8),28,9,0xb7e5c7,0.45).setDepth(7); }
+  drawFrog(x,y) { const c=this.add.container(x,y).setDepth(12); c.add(this.add.circle(0,0,24,0x74ba63,1)); c.add(this.add.circle(-9,-16,6,0xf9fff1,1)); c.add(this.add.circle(9,-16,6,0xf9fff1,1)); c.add(this.add.circle(-9,-16,2,0x222222,1)); c.add(this.add.circle(9,-16,2,0x222222,1)); return c; }
+  drawBird(x,y) { const c=this.add.container(x,y).setDepth(12); c.add(this.add.ellipse(0,0,32,18,0xaec6d9,1)); c.add(this.add.circle(12,-8,9,0xc7d9e8,1)); c.add(this.add.triangle(21,-8,0,0,13,5,0,10,0xffd685,1)); return c; }
+  drawTrash(x,y) { const g=this.add.graphics().setDepth(12); g.fillStyle(0x496d55,1); g.fillRoundedRect(x-22,y-44,44,58,6); g.fillStyle(0x31503d,1); g.fillRoundedRect(x-28,y-52,56,12,5); }
+
+  drawRainbow(x,y,r,alpha) {
+    const colors=[0xff8fa3,0xffd38e,0xfff6a3,0xbef7a1,0x9bd5ff,0xc9a6ff];
+    const g=this.add.graphics().setDepth(-24).setScrollFactor(0.62);
+    colors.forEach((c,i)=>{ g.lineStyle(10,c,alpha); g.beginPath(); g.arc(x,y,r-i*18,Math.PI,Math.PI*2,false); g.strokePath(); });
+  }
+
+  curveTo(g, x0, y0, cx, cy, x1, y1, steps=14) {
+    for (let i=1;i<=steps;i++) {
+      const t=i/steps, mt=1-t;
+      g.lineTo(mt*mt*x0+2*mt*t*cx+t*t*x1, mt*mt*y0+2*mt*t*cy+t*t*y1);
     }
   }
 
-  createParkScene() {
-    const gy = this.groundY;
-    // Park sits higher than the lake: compact, readable route with a cinematic lift.
-    for (const x of [3005, 3275, 3545]) this.drawLampPost(x, gy - 182);
-    for (const x of [3085, 3495]) this.drawBench(x, gy - 156);
-    for (const x of [3195, 3635]) this.drawTrashBin(x, gy - 144);
-
-    // Birds eating crumbs along the park path.
-    for (const x of [2990, 3145, 3420, 3610]) {
-      const bird = this.add.text(x, gy - 158, '🐦', { fontSize: '25px' }).setDepth(16).setAlpha(0.9);
-      this.tweens.add({ targets: bird, x: x + Phaser.Math.Between(-16, 22), duration: Phaser.Math.Between(900, 1500), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      this.add.circle(x + 18, gy - 136, 3, 0xf6d38d, 0.75).setDepth(15);
-    }
-  }
-
-  drawLampPost(x, y) {
-    this.add.rectangle(x, y + 64, 9, 128, 0x40455d).setDepth(13);
-    this.add.circle(x, y - 6, 25, 0xfff2b8, 0.18).setDepth(12);
-    this.add.circle(x, y - 6, 12, 0xfff2b8, 0.86).setDepth(15);
-  }
-
-  drawTrashBin(x, y) {
-    this.add.rectangle(x, y + 20, 34, 44, 0x3c6b62, 1).setDepth(14);
-    this.add.rectangle(x, y - 4, 42, 8, 0x2f514d, 1).setDepth(15);
-  }
-
-  createSideArea() {
-    const gy = this.groundY;
-
-    // Hidden side area: visible as a curious dip behind bushes, not a straight path collectible.
-    for (let i = 0; i < 15; i++) {
-      const x = 3180 + i * 38;
-      const y = gy - 126 + Phaser.Math.Between(-8, 8);
-      const size = Phaser.Math.Between(20, 34);
-      const alpha = (i === 2 || i === 3 || i === 4) ? 0.42 : 0.92; // subtle entry gap
-      this.add.circle(x, y, size, 0x416f4e, alpha).setDepth(18);
-    }
-
-    // Butterfly hint moves into the lower path.
-    const butterfly = this.add.text(3250, gy - 194, 'ʚɞ', { fontFamily: 'Arial', fontSize: '24px', color: '#d8c7ff' }).setOrigin(0.5).setDepth(22);
-    this.tweens.add({ targets: butterfly, y: gy - 86, x: 3325, duration: 1900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-    // The discovered nook below the route.
-    this.add.ellipse(3560, gy + 38, 460, 88, 0x274d44, 0.30).setDepth(1);
-    for (let i = 0; i < 20; i++) {
-      const x = 3350 + i * 24;
-      this.add.rectangle(x, gy + 70, 3, Phaser.Math.Between(30, 58), 0x75b862, 0.78).setOrigin(0.5, 1).setDepth(9);
-      this.add.circle(x, gy + 44 - Phaser.Math.Between(0, 12), 4, 0x9bb7ff, 0.72).setDepth(12);
-    }
-    this.add.text(3560, gy + 14, 'stil hoekje', { fontFamily: 'Arial', fontSize: '18px', color: '#dbeebc' }).setOrigin(0.5).setAlpha(0.0);
-  }
-
-
-  createMoonRevealArea() {
-    const gy = this.groundY;
-    this.moonRevealZone = this.add.zone(4320, gy - 292, 300, 270);
-    this.physics.add.existing(this.moonRevealZone, true);
-    this.moonRevealed = false;
-
-    this.finishZone = this.add.zone(5260, gy - 305, 220, 240);
-    this.physics.add.existing(this.finishZone, true);
-    this.finishMarker = this.add.container(5260, gy - 322).setDepth(16);
-    this.finishMarker.add(this.add.circle(0, 0, 42, 0xfff2b8, 0.11));
-    this.finishMarker.add(this.add.text(0, 0, '✧', { fontFamily: 'Arial', fontSize: '34px', color: '#fff6da' }).setOrigin(0.5).setAlpha(0.58));
-    this.tweens.add({ targets: this.finishMarker, alpha: 0.48, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-  }
-
-  createAtmosphere() {
-    const s = window.FTTM.GameSettings;
-    for (let i = 0; i < 70; i++) {
-      const p = this.add.circle(Phaser.Math.Between(0, s.worldWidth), Phaser.Math.Between(120, this.groundY - 20), Phaser.Math.FloatBetween(1.2, 2.8), 0xffffff, Phaser.Math.FloatBetween(0.13, 0.42)).setDepth(7);
-      this.tweens.add({ targets: p, x: p.x + Phaser.Math.Between(-30, 48), y: p.y + Phaser.Math.Between(-18, 18), duration: Phaser.Math.Between(2300, 5200), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    }
-    // Light flower clusters: sparse foreground polish, not gameplay.
-    for (const cluster of [[650, -248], [1180, -180], [1880, 70], [2780, -92], [3350, -205], [4560, -330]]) {
-      for (let i = 0; i < 10; i++) {
-        const fx = cluster[0] + Phaser.Math.Between(-120, 120);
-        const fy = this.groundY + cluster[1] + Phaser.Math.Between(-10, 10);
-        this.add.rectangle(fx, fy + 12, 2, 24, 0x7fc46a, 0.62).setDepth(9);
-        this.add.circle(fx, fy, Phaser.Math.Between(3, 6), Phaser.Math.RND.pick([0xffc9e8, 0xe1d4ff, 0xfff0a6, 0xbee9ff]), 0.72).setDepth(11);
-      }
-    }
-
-    // Birds crossing rainbow/lake and park.
-    for (const b of [[1240, this.groundY - 270], [2140, this.groundY - 330], [4700, this.groundY - 420]]) {
-      const bird = this.add.text(b[0], b[1], '⌁', { fontFamily: 'Arial', fontSize: '36px', color: '#ffffff' }).setOrigin(0.5).setDepth(5).setAlpha(0.42);
-      this.tweens.add({ targets: bird, x: bird.x + 420, y: bird.y - 20, duration: 5200, repeat: -1, repeatDelay: 1800, ease: 'Sine.easeInOut' });
-    }
-  }
-
+  // ---------- gameplay objects ----------
   createPlayer() {
-    this.player = this.add.container(235, this.groundY - 356).setDepth(40);
-    this.activeCheckpoint = { x: 235, y: this.groundY - 356 };
-    this.shadow = this.add.ellipse(0, 66, 52, 13, 0x000000, 0.20);
-    this.leftFoot = this.add.ellipse(-11, 62, 15, 7, 0xf0a0c3);
-    this.rightFoot = this.add.ellipse(11, 62, 15, 7, 0xf0a0c3);
-    const hair = this.add.ellipse(-8, -18, 32, 48, 0xffdd54);
-    const dress = this.add.ellipse(0, 28, 42, 76, 0xffb7d5);
-    const head = this.add.circle(0, -20, 22, 0xffe0bd);
-    const fringe = this.add.triangle(-5, -40, -22, 0, 16, 0, -3, 24, 0xffdd54);
-    const eye = this.add.circle(8, -22, 2.5, 0x1d2148);
-    this.player.add([this.shadow, this.leftFoot, this.rightFoot, hair, dress, head, fringe, eye]);
-    this.physics.add.existing(this.player);
-    this.player.body.setSize(34, 82);
-    this.player.body.setOffset(-17, -42);
-    this.player.body.setCollideWorldBounds(true);
+    this.player = this.physics.add.sprite(360, 720, null).setSize(46, 88).setOffset(-23, -44);
+    this.player.setCollideWorldBounds(false);
+    this.player.setDragX(0);
+    this.player.setMaxVelocity(430, 900);
+    this.playerArt = this.add.container(this.player.x, this.player.y).setDepth(50);
+    this.bodyArt = this.add.ellipse(0, 28, 54, 82, 0xff9fc4, 1);
+    this.headArt = this.add.circle(0, -26, 34, 0xffe6bf, 1);
+    this.hairArt = this.add.triangle(-15, -55, -50, -78, 14, -72, -15, -38, 0xffd735, 1);
+    this.eyeArt = this.add.circle(14, -30, 4, 0x222222, 1);
+    this.playerArt.add([this.bodyArt, this.headArt, this.hairArt, this.eyeArt]);
   }
 
-  createCollectibles() {
+  createCollectiblesAndTriggers() {
     this.fluffs = this.physics.add.staticGroup();
     this.plants = this.physics.add.staticGroup();
 
-    // First Moon Fluff in/above the tree near the lake.
-    this.addMoonFluff(1668, this.groundY - 334);
+    const fluff = this.fluffs.create(1645, 655, null).setCircle(34).setVisible(false).refreshBody();
+    this.drawFluffArt(1645, 655);
 
-    // First optional plant in the hidden side area.
-    this.addPlant('Blauwe druifjes gevonden!', 3580, this.groundY + 50, '♧', '#9bb7ff');
+    const plant = this.plants.create(3435, 1120, null).setCircle(28).setVisible(false).refreshBody();
+    this.drawPlantArt(3435, 1120);
+
+    this.checkpoints.create(360, 720, null).setDisplaySize(80,120).setVisible(false).refreshBody();
+    this.checkpoints.create(1830, 1040, null).setDisplaySize(80,120).setVisible(false).refreshBody();
+    this.checkpoints.create(3140, 830, null).setDisplaySize(80,120).setVisible(false).refreshBody();
+    this.checkpoints.create(4320, 720, null).setDisplaySize(80,120).setVisible(false).refreshBody();
+
+    this.finishZone = this.physics.add.staticGroup();
+    this.finishZone.create(5100, 690, null).setDisplaySize(170, 220).setVisible(false).refreshBody();
+
+    this.moonRevealZone = this.physics.add.staticGroup();
+    this.moonRevealZone.create(3920, 760, null).setDisplaySize(220, 320).setVisible(false).refreshBody();
   }
 
-  addMoonFluff(x, y) {
-    const visual = this.add.container(x, y).setDepth(30);
-    visual.add(this.add.circle(0, 0, 30, 0xfff6b9, 0.20));
-    visual.add(this.add.circle(0, 0, 12, 0xfffbdb, 0.95));
-    visual.add(this.add.text(0, 1, '✦', { fontFamily: 'Arial', fontSize: '24px', color: '#ffffff' }).setOrigin(0.5));
-    visual.setData('collected', false);
-    this.physics.add.existing(visual, true);
-    visual.body.setSize(58, 58);
-    visual.body.setOffset(-29, -29);
-    this.fluffs.add(visual);
-    this.tweens.add({ targets: visual, y: y - 14, duration: 1250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  drawFluffArt(x,y) {
+    const c=this.add.container(x,y).setDepth(42);
+    const glow=this.add.circle(0,0,46,0xfff3bb,0.14); const core=this.add.circle(0,0,15,0xfff6cf,0.95);
+    c.add([glow,core]);
+    for(let i=0;i<9;i++){ const a=i*Math.PI*2/9; c.add(this.add.line(0,0,0,0,Math.cos(a)*26,Math.sin(a)*26,0xfff6cf,0.75).setLineWidth(3)); }
+    this.tweens.add({targets:c,y:y-12,scale:1.08,duration:1400,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
   }
 
-  addPlant(name, x, y, icon, color) {
-    const plant = this.add.container(x, y).setDepth(30);
-    plant.add(this.add.text(0, 0, icon, { fontFamily: 'Arial', fontSize: '38px', color }).setOrigin(0.5));
-    plant.setData('plantName', name);
-    plant.setData('collected', false);
-    this.physics.add.existing(plant, true);
-    plant.body.setSize(64, 64);
-    plant.body.setOffset(-32, -32);
-    this.plants.add(plant);
+  drawPlantArt(x,y) {
+    const c=this.add.container(x,y).setDepth(22);
+    for(let i=0;i<7;i++){ c.add(this.add.circle(-24+i*8, -i*3, 8, 0x90b8ff, 0.96)); }
+    c.add(this.add.line(0,14,0,0,0,-48,0x73ac70,0.9).setLineWidth(5));
+    c.add(this.add.ellipse(-15,-10,28,12,0x6da768,0.9));
+    c.add(this.add.ellipse(15,-24,28,12,0x6da768,0.9));
   }
 
-  createInteractionZones() {
-    const gy = this.groundY;
-    this.benchZone = this.add.zone(1845, gy - 15, 170, 120);
-    this.physics.add.existing(this.benchZone, true);
-    this.appleZone = this.add.zone(1575, gy - 210, 250, 330);
-    this.physics.add.existing(this.appleZone, true);
-  }
-
-  updateGardenFlowers() {
-    if (!this.gardenFlowers || !this.player) return;
-    for (const flower of this.gardenFlowers) {
-      const baseX = flower.getData('baseX');
-      const baseY = flower.getData('baseY');
-      const d = Math.abs(this.player.x - baseX);
-      const sway = d < 95 ? (this.player.x < baseX ? 7 : -7) : 0;
-      flower.x = Phaser.Math.Linear(flower.x, sway, 0.18);
-      flower.y = Phaser.Math.Linear(flower.y, d < 95 ? -3 : 0, 0.15);
-      flower.rotation = Phaser.Math.Linear(flower.rotation, sway * 0.018, 0.15);
+  createAmbientLife() {
+    // fireflies / warm points of life
+    for (let i=0;i<34;i++) {
+      const x=Phaser.Math.Between(450,5000), y=Phaser.Math.Between(620,1120);
+      const p=this.add.circle(x,y,Phaser.Math.FloatBetween(2.5,5),0xffe59a,0.35).setDepth(18);
+      this.tweens.add({targets:p,x:x+Phaser.Math.Between(-30,30),y:y+Phaser.Math.Between(-24,24),alpha:0.08,duration:Phaser.Math.Between(1600,3600),yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    }
+    // occasional birds in sky
+    for (let i=0;i<6;i++) {
+      const bird=this.add.text(900+i*680, Phaser.Math.Between(360,620),'⌁',{fontFamily:'Arial',fontSize:'26px',color:'#cfe0ff'}).setDepth(-8).setAlpha(0.45);
+      this.tweens.add({targets:bird,x:bird.x+180,y:bird.y-30,duration:Phaser.Math.Between(7000,12000),repeat:-1,yoyo:true,ease:'Sine.easeInOut'});
     }
   }
+
+  // ---------- overlaps ----------
+  collectMoonFluff(player, fluff) {
+    if (!fluff.active) return;
+    fluff.disableBody(true, true);
+    this.collected = Math.min(this.totalFluffs, this.collected + 1);
+    if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(this.collected, this.totalFluffs);
+    this.setMessage('Maanpluis gevonden!', 1700);
+  }
+
+  collectPlant(player, plant) {
+    if (!plant.active) return;
+    plant.disableBody(true, true);
+    this.setMessage('Blauwe Druifjes gevonden!', 2200);
+  }
+
+  touchCheckpoint(player, cp) { this.activeCheckpoint = { x: cp.x, y: cp.y - 80 }; }
 
   triggerMoonReveal() {
     if (this.moonRevealed) return;
     this.moonRevealed = true;
-    this.setMessage('The clouds are moving.', 2400);
-    this.tweens.add({ targets: this.revealMoon, alpha: 1, duration: 1200, ease: 'Sine.easeInOut' });
-    this.moonClouds.forEach((c, i) => {
-      this.tweens.add({ targets: c, x: c.x + 210 + i * 70, alpha: 0.02, duration: 1800 + i * 260, ease: 'Sine.easeInOut' });
-    });
-  }
-
-  collectMoonFluff(player, fluff) {
-    if (!fluff || fluff.getData('collected')) return;
-    fluff.setData('collected', true);
-    if (fluff.body) fluff.body.enable = false;
-    this.collected += 1;
-    if (window.FTTM.setFlowerCounter) window.FTTM.setFlowerCounter(this.collected, this.totalFluffs);
-    this.setMessage('You found the first moon fluff.', 2300);
-    this.tweens.add({ targets: fluff, y: fluff.y - 34, scale: 1.35, alpha: 0, duration: 340, ease: 'Sine.easeOut', onComplete: () => fluff.destroy() });
-  }
-
-  collectPlant(player, plant) {
-    if (!plant || plant.getData('collected')) return;
-    plant.setData('collected', true);
-    if (plant.body) plant.body.enable = false;
-    this.setMessage(plant.getData('plantName'), 2100);
-    this.tweens.add({ targets: plant, y: plant.y - 20, alpha: 0, scale: 1.25, duration: 340, onComplete: () => plant.destroy() });
-  }
-
-  touchCheckpoint(player, zone) {
-    if (!zone) return;
-    this.activeCheckpoint = { x: zone.getData('spawnX'), y: zone.getData('spawnY') };
-  }
-
-  doInteraction() {
-    const now = this.time.now;
-    if (now - this.lastDoAt < 450) return;
-    this.lastDoAt = now;
-    const nearBench = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1845, this.groundY - 15) < 165;
-    const nearTree = Phaser.Math.Distance.Between(this.player.x, this.player.y, 1575, this.groundY - 210) < 210;
-
-    if (nearBench) {
-      this.setMessage('Amber sits and watches the rainbow.', 2600);
-      this.tweens.add({ targets: this.player, scaleY: 0.88, duration: 150, yoyo: true, ease: 'Sine.easeInOut' });
-      this.spawnBirds(1910, this.groundY - 295);
-      return;
-    }
-    if (nearTree) {
-      this.setMessage('The apples smell sweet.', 2100);
-      const apple = this.add.circle(this.player.x + 18 * this.facing, this.player.y - 38, 7, 0xff6b6b).setDepth(60);
-      this.tweens.add({ targets: apple, x: this.player.x + 5 * this.facing, y: this.player.y - 34, alpha: 0, duration: 420, onComplete: () => apple.destroy() });
-      return;
-    }
-    this.setMessage('Handstand!', 900);
-    this.tweens.add({ targets: this.player, angle: 180, duration: 170, yoyo: true, ease: 'Sine.easeInOut', onComplete: () => { this.player.angle = 0; } });
-  }
-
-  spawnBirds(x, y) {
-    for (let i = 0; i < 4; i++) {
-      const bird = this.add.text(x - i * 24, y + i * 9, '⌁', { fontFamily: 'Arial', fontSize: '30px', color: '#ffffff' }).setOrigin(0.5).setDepth(70).setAlpha(0.45);
-      this.tweens.add({ targets: bird, x: bird.x + 380, y: bird.y - 40, alpha: 0, duration: 2300 + i * 220, ease: 'Sine.easeInOut', onComplete: () => bird.destroy() });
-    }
+    this.setMessage('De wolken schuiven opzij...', 2200);
+    this.tweens.add({ targets:this.moon, alpha:1, duration:1600, ease:'Sine.easeOut' });
+    this.revealClouds.forEach((cloud,i)=>this.tweens.add({targets:cloud,x:cloud.x+220+i*80,alpha:0,duration:1800,ease:'Sine.easeInOut'}));
   }
 
   tryFinish() {
     if (this.finished) return;
-    if (this.collected < this.totalFluffs) {
-      this.setMessage('Find the moon fluff first.', 2000);
-      return;
-    }
+    if (this.collected < this.totalFluffs) { this.setMessage('Vind eerst het maanpluis.', 1600); return; }
     this.finished = true;
-    this.player.body.setVelocity(0, 0);
-    this.currentSpeed = 0;
-    this.cameras.main.stopFollow();
-    this.setMessage('The moon is awake.', 2800);
-    this.time.delayedCall(900, () => {
-      for (let i = 0; i < 20; i++) {
-        const h = this.add.text(this.revealMoon.x, this.revealMoon.y + 16, '♡', { fontFamily: 'Arial', fontSize: Phaser.Math.Between(18, 34) + 'px', color: '#ffd4e5' }).setOrigin(0.5).setDepth(120);
-        this.tweens.add({ targets: h, x: h.x + Phaser.Math.Between(-145, 145), y: h.y - Phaser.Math.Between(60, 190), alpha: 0, duration: Phaser.Math.Between(1100, 1900), delay: i * 55, onComplete: () => h.destroy() });
-      }
-      if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
-    });
+    this.inputLocked = true;
+    this.player.setVelocity(0,0);
+    if (window.FTTM.showFinishPanel) window.FTTM.showFinishPanel();
   }
 
-  handleVariableJump(input, onGround) {
+  // ---------- update ----------
+  update(time, delta) {
+    if (!this.player) return;
+    const input = (window.FTTM && window.FTTM.InputState) || {};
     const s = window.FTTM.GameSettings;
-    const pressed = input.jump && !this.jumpWasDown;
-    const released = !input.jump && this.jumpWasDown;
-    if (onGround) this.jumpCount = 0;
-    if (released) this.jumpLocked = false;
-    if (pressed && !this.jumpLocked) {
-      if (onGround) {
-        this.player.body.setVelocityY(s.jumpVelocity);
-        this.jumpCount = 1;
-        this.jumpLocked = true;
-        this.playJumpFeedback();
-      } else if (this.jumpCount === 1) {
-        this.player.body.setVelocityY(-540);
-        this.jumpCount = 2;
-        this.jumpLocked = true;
-        this.createDoubleJumpBurst();
-        this.playJumpFeedback();
+    const dt = Math.min(delta / 1000, 0.033);
+
+    if (!this.finished && !this.inputLocked) {
+      let target = 0;
+      if (input.left) target -= s.playerSpeed;
+      if (input.right) target += s.playerSpeed;
+      const vx = this.player.body.velocity.x;
+      const rate = target === 0 ? s.deceleration : s.acceleration;
+      const next = Phaser.Math.Linear(vx, target, Math.min(1, rate * dt / Math.max(1, Math.abs(target - vx))));
+      this.player.setVelocityX(next);
+      if (target !== 0) this.facing = Math.sign(target);
+
+      const grounded = this.player.body.blocked.down || this.player.body.touching.down;
+      if (grounded && !this.wasGrounded) this.jumpCount = 0;
+      if (input.jump && !this.jumpWasDown) {
+        if (grounded || this.jumpCount < this.maxJumps) {
+          this.player.setVelocityY(s.jumpVelocity);
+          this.jumpCount += 1;
+        }
       }
+      if (!input.jump && this.jumpWasDown && this.player.body.velocity.y < s.jumpCutVelocity) this.player.setVelocityY(s.jumpCutVelocity);
+      this.jumpWasDown = !!input.jump;
+      this.wasGrounded = grounded;
     }
-    if (released && this.player.body.velocity.y < s.jumpCutVelocity) this.player.body.setVelocityY(s.jumpCutVelocity);
-    this.jumpWasDown = input.jump;
+
+    if (this.player.y > this.worldH - 80) this.respawn();
+    this.playerArt.setPosition(this.player.x, this.player.y);
+    this.playerArt.setScale(this.facing < 0 ? -1 : 1, 1);
+    this.updateGardenReaction();
+    this.updateCamera(false);
   }
 
-  playJumpFeedback() {
-    this.tweens.add({ targets: this.player, scaleY: 1.04, duration: 85, yoyo: true, ease: 'Sine.easeOut' });
-  }
-
-  playLandingFeedback() {
-    this.tweens.add({ targets: this.player, scaleY: 0.94, duration: 75, yoyo: true, ease: 'Sine.easeOut', onComplete: () => { this.player.scaleY = 1; this.player.scaleX = this.facing; } });
-  }
-
-  createDoubleJumpBurst() {
-    const x = this.player.x, y = this.player.y + 38;
-    for (let i = 0; i < 7; i++) {
-      const p = this.add.circle(x, y, 3, 0xffffff, 0.78).setDepth(60);
-      this.tweens.add({ targets: p, x: x + Phaser.Math.Between(-38, 38), y: y + Phaser.Math.Between(8, 42), alpha: 0, scale: 0.2, duration: 260, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
-    }
-  }
-
-  createBlowEffect() {
-    const dir = this.facing;
-    for (let i = 0; i < 9; i++) {
-      const seed = this.add.circle(this.player.x + dir * 28, this.player.y - 22, 3, 0xffffff, 0.86).setDepth(62);
-      this.tweens.add({ targets: seed, x: seed.x + dir * Phaser.Math.Between(60, 135), y: seed.y + Phaser.Math.Between(-52, 18), alpha: 0, scale: Phaser.Math.FloatBetween(0.6, 1.35), duration: Phaser.Math.Between(480, 760), delay: i * 18, ease: 'Sine.easeOut', onComplete: () => seed.destroy() });
-    }
-  }
-
-  animatePlayer(delta, onGround) {
-    const moving = Math.abs(this.currentSpeed) > 18 && onGround;
-    if (moving) {
-      this.walkTime = (this.walkTime || 0) + delta * 0.012;
-      const step = Math.sin(this.walkTime);
-      this.player.angle = Phaser.Math.Clamp(this.currentSpeed / 260, -1, 1) * 1.5;
-      this.leftFoot.x = -11 + step * 4;
-      this.rightFoot.x = 11 - step * 4;
-      this.leftFoot.y = 62 - Math.max(0, step) * 4;
-      this.rightFoot.y = 62 - Math.max(0, -step) * 4;
-    } else {
-      this.player.angle = Phaser.Math.Linear(this.player.angle, 0, 0.15);
-      this.leftFoot.x = Phaser.Math.Linear(this.leftFoot.x, -11, 0.18);
-      this.rightFoot.x = Phaser.Math.Linear(this.rightFoot.x, 11, 0.18);
-      this.leftFoot.y = Phaser.Math.Linear(this.leftFoot.y, 62, 0.18);
-      this.rightFoot.y = Phaser.Math.Linear(this.rightFoot.y, 62, 0.18);
+  updateGardenReaction() {
+    if (!this.gardenFlowers) return;
+    for (const f of this.gardenFlowers) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, f.x, f.y);
+      const sway = d < 95 ? (this.facing * 7) : Math.sin(this.time.now*0.002 + f.x*0.02)*2;
+      f.stem.rotation = Phaser.Math.Linear(f.stem.rotation, Phaser.Math.DegToRad(sway), 0.08);
+      f.blossom.x = f.x + sway;
     }
   }
 
   respawn() {
-    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 292 };
-    this.player.setPosition(cp.x, cp.y);
-    this.player.body.setVelocity(0, 0);
-    this.currentSpeed = 0;
-    this.jumpCount = 0;
-    this.setMessage('Try again softly.', 1000);
+    this.player.setVelocity(0,0);
+    this.player.setPosition(this.activeCheckpoint.x, this.activeCheckpoint.y);
   }
 
-  updateCamera(initial) {
-    if (this.finished) return;
-    const s = window.FTTM.GameSettings;
-
-    // Recalculate the visible world area from the current canvas and zoom.
-    // This makes vertical camera movement work consistently on mobile landscape.
-    this.visibleW = this.scale.width / this.worldZoom;
-    this.visibleH = this.scale.height / this.worldZoom;
-
-    const maxX = Math.max(0, s.worldWidth - this.visibleW);
-    const maxY = Math.max(0, this.worldBottom - this.visibleH);
-    const speed = this.currentSpeed || 0;
-
-    // Horizontal framing: keep Amber left of center while moving right,
-    // and give a little extra look-space when moving left.
-    let targetAnchor;
-    if (Math.abs(speed) > 35) {
-      targetAnchor = speed > 0
-        ? (this.isPortrait ? 0.20 : 0.22)
-        : (this.isPortrait ? 0.50 : 0.45);
-    } else {
-      targetAnchor = this.cameraAnchor !== undefined ? this.cameraAnchor : (this.isPortrait ? 0.30 : 0.26);
-    }
-
-    if (initial || this.cameraAnchor === undefined) this.cameraAnchor = targetAnchor;
-    else this.cameraAnchor = Phaser.Math.Linear(this.cameraAnchor, targetAnchor, 0.045);
-
-    let desiredX = this.player.x - this.visibleW * this.cameraAnchor;
-    desiredX = Phaser.Math.Clamp(desiredX, 0, maxX);
-
-    // v5.0 dynamic vertical follow:
-    // This deliberately makes the vertical movement visible for testing.
-    // It follows real terrain changes smoothly, but filters out small jump bobbing.
-    const onGround = this.player.body && (this.player.body.blocked.down || this.player.body.touching.down);
-    const playerY = this.player.y;
-
-    if (initial || this.cameraHeightFocusY === undefined) {
-      this.cameraHeightFocusY = playerY;
-    } else {
-      const deltaY = playerY - this.cameraHeightFocusY;
-      const strongHeightChange = Math.abs(deltaY) > 90;
-      if (onGround || strongHeightChange) {
-        this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, playerY, 0.13);
-      }
-    }
-
-    // Keep Amber a little below center. This makes descending to the lake and
-    // climbing to the park visibly move the camera without becoming jumpy.
-    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.57 : 0.54);
-    desiredY = Phaser.Math.Clamp(desiredY, 0, maxY);
-
-    if (initial || this.cameraTargetX === undefined) {
-      this.cameraTargetX = desiredX;
-      this.cameraTargetY = desiredY;
-      this.cameras.main.scrollX = desiredX;
-      this.cameras.main.scrollY = desiredY;
-      return;
-    }
-
-    this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desiredX, 0.12);
-    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.18);
-    this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.18);
-  }
-
-  update(time, delta) {
-    if (this.finished) return;
-    const input = window.FTTM.InputState || {};
-    const s = window.FTTM.GameSettings;
-    const onGround = this.player.body.blocked.down || this.player.body.touching.down;
-
-    let target = 0;
-    if (!this.inputLocked) {
-      if (input.left) target -= s.playerSpeed;
-      if (input.right) target += s.playerSpeed;
-    }
-
-    const rate = target === 0 ? s.deceleration : s.acceleration;
-    const step = rate * (delta / 1000);
-    if (this.currentSpeed < target) this.currentSpeed = Math.min(this.currentSpeed + step, target);
-    if (this.currentSpeed > target) this.currentSpeed = Math.max(this.currentSpeed - step, target);
-    this.player.body.setVelocityX(this.currentSpeed);
-
-    if (Math.abs(this.currentSpeed) > 8) {
-      this.facing = this.currentSpeed < 0 ? -1 : 1;
-      this.player.scaleX = this.facing;
-    }
-
-    if (!this.inputLocked) this.handleVariableJump(input, onGround);
-    else this.jumpWasDown = input.jump;
-
-    if (!this.wasGrounded && onGround) this.playLandingFeedback();
-    this.wasGrounded = onGround;
-
-    if (!this.inputLocked && input.blow) {
-      this.doInteraction();
-      this.createBlowEffect();
-    }
-
-    if (this.player.y > this.groundY + 390) this.respawn();
-
-    this.updateGardenFlowers();
-    this.animatePlayer(delta, onGround);
-    this.updateCamera(false);
+  updateCamera(initial=false) {
+    const cam = this.cameras.main;
+    const desiredX = Phaser.Math.Clamp(this.player.x - this.visibleW * 0.38, 0, this.worldW - this.visibleW);
+    const desiredY = Phaser.Math.Clamp(this.player.y - this.visibleH * 0.58, 0, this.worldH - this.visibleH);
+    if (initial) { cam.scrollX = desiredX; cam.scrollY = desiredY; this.cameraY = desiredY; return; }
+    cam.scrollX = Phaser.Math.Linear(cam.scrollX, desiredX, 0.075);
+    // soft cinematic vertical follow, now part of the base camera identity
+    this.cameraY = Phaser.Math.Linear(this.cameraY, desiredY, 0.045);
+    cam.scrollY = this.cameraY;
   }
 }
 
+window.LevelScene = LevelScene;
 window.FTTM = window.FTTM || {};
 window.FTTM.LevelScene = LevelScene;
-window.LevelScene = LevelScene;
