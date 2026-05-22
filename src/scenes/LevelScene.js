@@ -26,11 +26,14 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    this.groundY = this.isPortrait ? this.visibleH - 165 : this.visibleH - 148;
-    this.worldBottom = this.visibleH + 260;
+    // v4.3 dynamic camera prototype:
+    // the world is now taller than the screen so the camera can softly follow
+    // real height changes without reacting to every small jump.
+    this.groundY = this.isPortrait ? this.visibleH - 145 : this.visibleH - 128;
+    this.worldBottom = this.visibleH + 620;
 
     this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
-    this.cameras.main.setBounds(0, 0, s.worldWidth, this.visibleH);
+    this.cameras.main.setBounds(0, 0, s.worldWidth, this.worldBottom);
     this.cameras.main.setZoom(this.worldZoom);
 
     if (window.FTTM.hideFinishPanel) window.FTTM.hideFinishPanel();
@@ -81,14 +84,14 @@ class LevelScene extends Phaser.Scene {
 
   drawSky() {
     const s = window.FTTM.GameSettings;
-    this.add.rectangle(s.worldWidth / 2, this.visibleH / 2, s.worldWidth, this.visibleH, 0x122a60).setScrollFactor(1).setDepth(-20);
-    this.add.rectangle(s.worldWidth / 2, this.groundY + 105, s.worldWidth, 230, 0x081633).setDepth(-18);
+    this.add.rectangle(s.worldWidth / 2, this.worldBottom / 2, s.worldWidth, this.worldBottom, 0x122a60).setScrollFactor(1).setDepth(-20);
+    this.add.rectangle(s.worldWidth / 2, this.groundY + 175, s.worldWidth, 420, 0x081633).setDepth(-18);
 
     // Stars and soft sky particles.
     for (let i = 0; i < 95; i++) {
       const star = this.add.circle(
         Phaser.Math.Between(0, s.worldWidth),
-        Phaser.Math.Between(26, Math.max(80, this.groundY - 120)),
+        Phaser.Math.Between(26, Math.max(80, this.groundY - 170)),
         Phaser.Math.FloatBetween(0.7, 1.8),
         0xffffff,
         Phaser.Math.FloatBetween(0.16, 0.56)
@@ -108,7 +111,7 @@ class LevelScene extends Phaser.Scene {
     });
 
     // Moon reveal is hidden behind clouds at first.
-    this.revealMoon = this.add.container(4250, this.groundY - 330).setDepth(-4);
+    this.revealMoon = this.add.container(4250, this.groundY - 405).setDepth(-4);
     this.revealMoon.setAlpha(0);
     this.revealMoon.add(this.add.circle(0, 0, 112, 0xffefb8, 0.11));
     this.revealMoon.add(this.add.circle(0, 0, 74, 0xffefb8, 0.88));
@@ -127,31 +130,34 @@ class LevelScene extends Phaser.Scene {
 
     // v4.1 composition pass: same intro idea, cleaner spatial design.
     // Route: warm home -> flower garden -> slope to lake -> tree/bank/lake -> park -> hidden lower side area -> moon reveal.
-    this.addGroundSegment(0, gy - 96, 540, 0x6da96e, 'home hill');
-    this.addGroundSegment(540, gy - 86, 440, 0x72ad72, 'flower garden');
-    this.addGroundSegment(980, gy - 48, 430, 0x68a46c, 'soft descent');
-    this.addGroundSegment(1410, gy - 16, 920, 0x5f9a69, 'lake scene');
-    this.addGroundSegment(2330, gy - 48, 360, 0x68a46c, 'hill to park');
-    this.addGroundSegment(2690, gy - 88, 850, 0x637f68, 'main park path');
-    this.addGroundSegment(3540, gy - 72, 430, 0x697f65, 'park exit');
-    this.addGroundSegment(3970, gy - 94, 950, 0x6ca76e, 'moon reveal hill');
+    // v4.3 uses stronger height variation to test soft vertical camera follow.
+    // These are still prototype land blocks, but the route now reads as:
+    // high home hill -> gentle garden drop -> low lake -> rising park -> hidden lower nook -> high moon reveal.
+    this.addGroundSegment(0, gy - 132, 560, 0x6da96e, 'home hill high');
+    this.addGroundSegment(560, gy - 112, 440, 0x72ad72, 'flower garden');
+    this.addGroundSegment(1000, gy - 64, 390, 0x68a46c, 'downhill approach');
+    this.addGroundSegment(1390, gy - 18, 950, 0x5f9a69, 'low lake scene');
+    this.addGroundSegment(2340, gy - 58, 380, 0x68a46c, 'long hill to park');
+    this.addGroundSegment(2720, gy - 124, 840, 0x637f68, 'higher park path');
+    this.addGroundSegment(3560, gy - 96, 420, 0x697f65, 'park exit');
+    this.addGroundSegment(3980, gy - 154, 980, 0x6ca76e, 'high moon reveal hill');
 
-    // Tree climb at the lake. Kept simple and forgiving.
-    this.addSoftBranch(1485, gy - 185, 155, 20);
-    this.addSoftBranch(1595, gy - 255, 165, 20);
+    // Tree climb at the lake. Kept simple and forgiving; camera should rise gently when climbing.
+    this.addSoftBranch(1485, gy - 190, 155, 20);
+    this.addSoftBranch(1595, gy - 265, 165, 20);
 
     // Real side area: below the park path, visually separated and only reached by choosing the small hidden descent.
-    this.addGroundSegment(3095, gy + 44, 520, 0x4f835d, 'hidden lower blue-grape nook');
-    this.addSoftBranch(3040, gy - 16, 130, 18); // gentle little step down / entry lip
-    this.addSoftBranch(3535, gy - 15, 150, 18); // soft step back up
+    this.addGroundSegment(3095, gy + 36, 520, 0x4f835d, 'hidden lower blue-grape nook');
+    this.addSoftBranch(3040, gy - 44, 130, 18); // gentle little step down / entry lip
+    this.addSoftBranch(3535, gy - 42, 150, 18); // soft step back up
 
     // Invisible checkpoints.
-    this.addCheckpoint(230, gy - 168);
-    this.addCheckpoint(1130, gy - 120);
-    this.addCheckpoint(1510, gy - 88);
-    this.addCheckpoint(2440, gy - 118);
-    this.addCheckpoint(3180, gy + 2);
-    this.addCheckpoint(4040, gy - 162);
+    this.addCheckpoint(230, gy - 204);
+    this.addCheckpoint(1130, gy - 136);
+    this.addCheckpoint(1510, gy - 90);
+    this.addCheckpoint(2440, gy - 128);
+    this.addCheckpoint(3180, gy - 6);
+    this.addCheckpoint(4040, gy - 222);
   }
 
 
@@ -371,8 +377,8 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.add.container(235, this.groundY - 168).setDepth(40);
-    this.activeCheckpoint = { x: 235, y: this.groundY - 168 };
+    this.player = this.add.container(235, this.groundY - 204).setDepth(40);
+    this.activeCheckpoint = { x: 235, y: this.groundY - 204 };
     this.shadow = this.add.ellipse(0, 66, 52, 13, 0x000000, 0.20);
     this.leftFoot = this.add.ellipse(-11, 62, 15, 7, 0xf0a0c3);
     this.rightFoot = this.add.ellipse(11, 62, 15, 7, 0xf0a0c3);
@@ -595,7 +601,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   respawn() {
-    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 168 };
+    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 204 };
     this.player.setPosition(cp.x, cp.y);
     this.player.body.setVelocity(0, 0);
     this.currentSpeed = 0;
@@ -606,9 +612,11 @@ class LevelScene extends Phaser.Scene {
   updateCamera(initial) {
     if (this.finished) return;
     const s = window.FTTM.GameSettings;
-    const max = Math.max(0, s.worldWidth - this.visibleW);
+    const maxX = Math.max(0, s.worldWidth - this.visibleW);
+    const maxY = Math.max(0, this.worldBottom - this.visibleH);
     const speed = this.currentSpeed || 0;
 
+    // Horizontal framing: keep the proven cinematic look from v3/v4.
     let targetAnchor;
     if (Math.abs(speed) > 35) {
       targetAnchor = speed > 0
@@ -621,19 +629,44 @@ class LevelScene extends Phaser.Scene {
     if (initial || this.cameraAnchor === undefined) this.cameraAnchor = targetAnchor;
     else this.cameraAnchor = Phaser.Math.Linear(this.cameraAnchor, targetAnchor, 0.045);
 
-    let desired = this.player.x - this.visibleW * this.cameraAnchor;
-    desired = Phaser.Math.Clamp(desired, 0, max);
+    let desiredX = this.player.x - this.visibleW * this.cameraAnchor;
+    desiredX = Phaser.Math.Clamp(desiredX, 0, maxX);
+
+    // Vertical framing v4.3:
+    // Do not chase every jump. Only move if Amber leaves a comfortable vertical deadzone.
+    // This keeps the camera calm but allows hills, tree climbing and lowered side areas.
+    const currentY = initial || this.cameraTargetY === undefined ? this.cameras.main.scrollY : this.cameraTargetY;
+    const screenY = this.player.y - currentY;
+    const topDeadzone = this.visibleH * 0.37;
+    const bottomDeadzone = this.visibleH * 0.64;
+    let desiredY = currentY;
+
+    if (screenY < topDeadzone) {
+      desiredY = this.player.y - topDeadzone;
+    } else if (screenY > bottomDeadzone) {
+      desiredY = this.player.y - bottomDeadzone;
+    }
+
+    // Bias a little upward when the player is on high ground, so upcoming sky/reveals stay visible.
+    if (this.player.body && (this.player.body.blocked.down || this.player.body.touching.down)) {
+      const highGround = this.player.y < this.groundY - 170;
+      if (highGround) desiredY -= 18;
+    }
+
+    desiredY = Phaser.Math.Clamp(desiredY, 0, maxY);
 
     if (initial || this.cameraTargetX === undefined) {
-      this.cameraTargetX = desired;
-      this.cameras.main.scrollX = desired;
-      this.cameras.main.scrollY = 0;
+      this.cameraTargetX = desiredX;
+      this.cameraTargetY = desiredY;
+      this.cameras.main.scrollX = desiredX;
+      this.cameras.main.scrollY = desiredY;
       return;
     }
 
-    this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desired, 0.12);
+    this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desiredX, 0.12);
+    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.055);
     this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
-    this.cameras.main.scrollY = 0;
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.075);
   }
 
   update(time, delta) {
