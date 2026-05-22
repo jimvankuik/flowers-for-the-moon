@@ -26,11 +26,11 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // v4.4 dynamic camera prototype:
+    // v4.5 visible dynamic camera prototype:
     // the world is now taller than the screen so the camera can softly follow
     // real height changes without reacting to every small jump.
     this.groundY = this.isPortrait ? this.visibleH - 145 : this.visibleH - 128;
-    this.worldBottom = this.visibleH + 760;
+    this.worldBottom = this.visibleH + 1050;
 
     this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
     this.cameras.main.setBounds(0, 0, s.worldWidth, this.worldBottom);
@@ -133,31 +133,31 @@ class LevelScene extends Phaser.Scene {
     // v4.3 uses stronger height variation to test soft vertical camera follow.
     // These are still prototype land blocks, but the route now reads as:
     // high home hill -> gentle garden drop -> low lake -> rising park -> hidden lower nook -> high moon reveal.
-    this.addGroundSegment(0, gy - 132, 560, 0x6da96e, 'home hill high');
-    this.addGroundSegment(560, gy - 112, 440, 0x72ad72, 'flower garden');
-    this.addGroundSegment(1000, gy - 64, 390, 0x68a46c, 'downhill approach');
-    this.addGroundSegment(1390, gy - 18, 950, 0x5f9a69, 'low lake scene');
-    this.addGroundSegment(2340, gy - 58, 380, 0x68a46c, 'long hill to park');
-    this.addGroundSegment(2720, gy - 124, 840, 0x637f68, 'higher park path');
-    this.addGroundSegment(3560, gy - 96, 420, 0x697f65, 'park exit');
-    this.addGroundSegment(3980, gy - 154, 980, 0x6ca76e, 'high moon reveal hill');
+    this.addGroundSegment(0, gy - 220, 560, 0x6da96e, 'home hill high');
+    this.addGroundSegment(560, gy - 185, 440, 0x72ad72, 'flower garden');
+    this.addGroundSegment(1000, gy - 100, 390, 0x68a46c, 'downhill approach');
+    this.addGroundSegment(1390, gy + 20, 950, 0x5f9a69, 'low lake scene');
+    this.addGroundSegment(2340, gy - 65, 380, 0x68a46c, 'long hill to park');
+    this.addGroundSegment(2720, gy - 190, 840, 0x637f68, 'higher park path');
+    this.addGroundSegment(3560, gy - 145, 420, 0x697f65, 'park exit');
+    this.addGroundSegment(3980, gy - 255, 980, 0x6ca76e, 'high moon reveal hill');
 
     // Tree climb at the lake. Kept simple and forgiving; camera should rise gently when climbing.
-    this.addSoftBranch(1485, gy - 190, 155, 20);
-    this.addSoftBranch(1595, gy - 265, 165, 20);
+    this.addSoftBranch(1485, gy - 155, 155, 20);
+    this.addSoftBranch(1595, gy - 230, 165, 20);
 
     // Real side area: below the park path, visually separated and only reached by choosing the small hidden descent.
-    this.addGroundSegment(3095, gy + 92, 520, 0x4f835d, 'hidden lower blue-grape nook');
-    this.addSoftBranch(3040, gy - 44, 130, 18); // gentle little step down / entry lip
-    this.addSoftBranch(3535, gy - 42, 150, 18); // soft step back up
+    this.addGroundSegment(3095, gy + 185, 520, 0x4f835d, 'hidden lower blue-grape nook');
+    this.addSoftBranch(3040, gy - 70, 130, 18); // gentle little step down / entry lip
+    this.addSoftBranch(3535, gy - 70, 150, 18); // soft step back up
 
     // Invisible checkpoints.
-    this.addCheckpoint(230, gy - 204);
-    this.addCheckpoint(1130, gy - 136);
-    this.addCheckpoint(1510, gy - 90);
-    this.addCheckpoint(2440, gy - 128);
-    this.addCheckpoint(3180, gy + 48);
-    this.addCheckpoint(4040, gy - 222);
+    this.addCheckpoint(230, gy - 292);
+    this.addCheckpoint(1130, gy - 172);
+    this.addCheckpoint(1510, gy - 52);
+    this.addCheckpoint(2440, gy - 138);
+    this.addCheckpoint(3180, gy + 142);
+    this.addCheckpoint(4040, gy - 322);
   }
 
 
@@ -377,8 +377,8 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.add.container(235, this.groundY - 204).setDepth(40);
-    this.activeCheckpoint = { x: 235, y: this.groundY - 204 };
+    this.player = this.add.container(235, this.groundY - 292).setDepth(40);
+    this.activeCheckpoint = { x: 235, y: this.groundY - 292 };
     this.shadow = this.add.ellipse(0, 66, 52, 13, 0x000000, 0.20);
     this.leftFoot = this.add.ellipse(-11, 62, 15, 7, 0xf0a0c3);
     this.rightFoot = this.add.ellipse(11, 62, 15, 7, 0xf0a0c3);
@@ -399,10 +399,10 @@ class LevelScene extends Phaser.Scene {
     this.plants = this.physics.add.staticGroup();
 
     // First Moon Fluff in/above the tree near the lake.
-    this.addMoonFluff(1610, this.groundY - 312);
+    this.addMoonFluff(1610, this.groundY - 275);
 
     // First optional plant in the hidden side area.
-    this.addPlant('Blauwe druifjes gevonden!', 3375, this.groundY + 4, '♧', '#9bb7ff');
+    this.addPlant('Blauwe druifjes gevonden!', 3375, this.groundY + 100, '♧', '#9bb7ff');
   }
 
   addMoonFluff(x, y) {
@@ -601,7 +601,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   respawn() {
-    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 204 };
+    const cp = this.activeCheckpoint || { x: 235, y: this.groundY - 292 };
     this.player.setPosition(cp.x, cp.y);
     this.player.body.setVelocity(0, 0);
     this.currentSpeed = 0;
@@ -639,26 +639,25 @@ class LevelScene extends Phaser.Scene {
     let desiredX = this.player.x - this.visibleW * this.cameraAnchor;
     desiredX = Phaser.Math.Clamp(desiredX, 0, maxX);
 
-    // v4.4 real vertical follow:
-    // The previous v4.3 deadzone was too large, so the camera effectively stayed locked.
-    // This version follows the player's grounded/travel height smoothly, but does NOT
-    // chase every jump. When Amber is airborne, the camera keeps its current vertical target.
+    // v4.5 real visible vertical follow:
+    // This deliberately makes the vertical movement visible for testing.
+    // It follows real terrain changes smoothly, but filters out small jump bobbing.
     const onGround = this.player.body && (this.player.body.blocked.down || this.player.body.touching.down);
+    const playerY = this.player.y;
 
     if (initial || this.cameraHeightFocusY === undefined) {
-      this.cameraHeightFocusY = this.player.y;
-    } else if (onGround) {
-      // Smoothly learn Amber's true terrain height only when she is standing/running/climbing.
-      this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, this.player.y, 0.075);
+      this.cameraHeightFocusY = playerY;
+    } else {
+      const deltaY = playerY - this.cameraHeightFocusY;
+      const strongHeightChange = Math.abs(deltaY) > 90;
+      if (onGround || strongHeightChange) {
+        this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, playerY, 0.13);
+      }
     }
 
-    // Keep Amber slightly below the vertical center so sky/reveals remain visible.
-    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.60 : 0.58);
-
-    // Very small vertical changes are ignored to preserve the calm cinematic feel.
-    const currentTargetY = this.cameraTargetY === undefined ? this.cameras.main.scrollY : this.cameraTargetY;
-    if (!initial && Math.abs(desiredY - currentTargetY) < 10) desiredY = currentTargetY;
-
+    // Keep Amber a little below center. This makes descending to the lake and
+    // climbing to the park visibly move the camera without becoming jumpy.
+    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.57 : 0.54);
     desiredY = Phaser.Math.Clamp(desiredY, 0, maxY);
 
     if (initial || this.cameraTargetX === undefined) {
@@ -670,9 +669,9 @@ class LevelScene extends Phaser.Scene {
     }
 
     this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desiredX, 0.12);
-    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.11);
+    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.18);
     this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.11);
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.18);
   }
 
   update(time, delta) {
