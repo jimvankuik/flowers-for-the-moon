@@ -26,11 +26,11 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // v4.3 dynamic camera prototype:
+    // v4.4 dynamic camera prototype:
     // the world is now taller than the screen so the camera can softly follow
     // real height changes without reacting to every small jump.
     this.groundY = this.isPortrait ? this.visibleH - 145 : this.visibleH - 128;
-    this.worldBottom = this.visibleH + 620;
+    this.worldBottom = this.visibleH + 760;
 
     this.physics.world.setBounds(0, 0, s.worldWidth, this.worldBottom);
     this.cameras.main.setBounds(0, 0, s.worldWidth, this.worldBottom);
@@ -147,7 +147,7 @@ class LevelScene extends Phaser.Scene {
     this.addSoftBranch(1595, gy - 265, 165, 20);
 
     // Real side area: below the park path, visually separated and only reached by choosing the small hidden descent.
-    this.addGroundSegment(3095, gy + 36, 520, 0x4f835d, 'hidden lower blue-grape nook');
+    this.addGroundSegment(3095, gy + 92, 520, 0x4f835d, 'hidden lower blue-grape nook');
     this.addSoftBranch(3040, gy - 44, 130, 18); // gentle little step down / entry lip
     this.addSoftBranch(3535, gy - 42, 150, 18); // soft step back up
 
@@ -156,7 +156,7 @@ class LevelScene extends Phaser.Scene {
     this.addCheckpoint(1130, gy - 136);
     this.addCheckpoint(1510, gy - 90);
     this.addCheckpoint(2440, gy - 128);
-    this.addCheckpoint(3180, gy - 6);
+    this.addCheckpoint(3180, gy + 48);
     this.addCheckpoint(4040, gy - 222);
   }
 
@@ -612,11 +612,18 @@ class LevelScene extends Phaser.Scene {
   updateCamera(initial) {
     if (this.finished) return;
     const s = window.FTTM.GameSettings;
+
+    // Recalculate the visible world area from the current canvas and zoom.
+    // This makes vertical camera movement work consistently on mobile landscape.
+    this.visibleW = this.scale.width / this.worldZoom;
+    this.visibleH = this.scale.height / this.worldZoom;
+
     const maxX = Math.max(0, s.worldWidth - this.visibleW);
     const maxY = Math.max(0, this.worldBottom - this.visibleH);
     const speed = this.currentSpeed || 0;
 
-    // Horizontal framing: keep the proven cinematic look from v3/v4.
+    // Horizontal framing: keep Amber left of center while moving right,
+    // and give a little extra look-space when moving left.
     let targetAnchor;
     if (Math.abs(speed) > 35) {
       targetAnchor = speed > 0
@@ -632,26 +639,25 @@ class LevelScene extends Phaser.Scene {
     let desiredX = this.player.x - this.visibleW * this.cameraAnchor;
     desiredX = Phaser.Math.Clamp(desiredX, 0, maxX);
 
-    // Vertical framing v4.3:
-    // Do not chase every jump. Only move if Amber leaves a comfortable vertical deadzone.
-    // This keeps the camera calm but allows hills, tree climbing and lowered side areas.
-    const currentY = initial || this.cameraTargetY === undefined ? this.cameras.main.scrollY : this.cameraTargetY;
-    const screenY = this.player.y - currentY;
-    const topDeadzone = this.visibleH * 0.37;
-    const bottomDeadzone = this.visibleH * 0.64;
-    let desiredY = currentY;
+    // v4.4 real vertical follow:
+    // The previous v4.3 deadzone was too large, so the camera effectively stayed locked.
+    // This version follows the player's grounded/travel height smoothly, but does NOT
+    // chase every jump. When Amber is airborne, the camera keeps its current vertical target.
+    const onGround = this.player.body && (this.player.body.blocked.down || this.player.body.touching.down);
 
-    if (screenY < topDeadzone) {
-      desiredY = this.player.y - topDeadzone;
-    } else if (screenY > bottomDeadzone) {
-      desiredY = this.player.y - bottomDeadzone;
+    if (initial || this.cameraHeightFocusY === undefined) {
+      this.cameraHeightFocusY = this.player.y;
+    } else if (onGround) {
+      // Smoothly learn Amber's true terrain height only when she is standing/running/climbing.
+      this.cameraHeightFocusY = Phaser.Math.Linear(this.cameraHeightFocusY, this.player.y, 0.075);
     }
 
-    // Bias a little upward when the player is on high ground, so upcoming sky/reveals stay visible.
-    if (this.player.body && (this.player.body.blocked.down || this.player.body.touching.down)) {
-      const highGround = this.player.y < this.groundY - 170;
-      if (highGround) desiredY -= 18;
-    }
+    // Keep Amber slightly below the vertical center so sky/reveals remain visible.
+    let desiredY = this.cameraHeightFocusY - this.visibleH * (this.isPortrait ? 0.60 : 0.58);
+
+    // Very small vertical changes are ignored to preserve the calm cinematic feel.
+    const currentTargetY = this.cameraTargetY === undefined ? this.cameras.main.scrollY : this.cameraTargetY;
+    if (!initial && Math.abs(desiredY - currentTargetY) < 10) desiredY = currentTargetY;
 
     desiredY = Phaser.Math.Clamp(desiredY, 0, maxY);
 
@@ -664,9 +670,9 @@ class LevelScene extends Phaser.Scene {
     }
 
     this.cameraTargetX = Phaser.Math.Linear(this.cameraTargetX, desiredX, 0.12);
-    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.055);
+    this.cameraTargetY = Phaser.Math.Linear(this.cameraTargetY, desiredY, 0.11);
     this.cameras.main.scrollX = Phaser.Math.Linear(this.cameras.main.scrollX, this.cameraTargetX, 0.16);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.075);
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, this.cameraTargetY, 0.11);
   }
 
   update(time, delta) {
