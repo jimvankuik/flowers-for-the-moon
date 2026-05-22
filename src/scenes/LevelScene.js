@@ -26,7 +26,7 @@ class LevelScene extends Phaser.Scene {
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
 
-    // v4.7 landscape foundation:
+    // v4.8 landscape foundation fix:
     // the world is now taller than the screen so the camera can softly follow
     // real height changes without reacting to every small jump.
     this.groundY = this.isPortrait ? this.visibleH - 145 : this.visibleH - 128;
@@ -130,7 +130,7 @@ class LevelScene extends Phaser.Scene {
     this.grassLayer = this.add.graphics().setDepth(5);
     const gy = this.groundY;
 
-    // v4.7 Landscape Foundation:
+    // v4.8 Landscape Foundation:
     // The gameplay colliders are still simple and safe, but the visible terrain is now drawn as
     // soft overlapping hills instead of separate block platforms. This keeps the prototype playable
     // while giving Fluistervelden a more natural, landscape-first feeling.
@@ -162,6 +162,16 @@ class LevelScene extends Phaser.Scene {
   }
 
 
+  quadLine(g, x0, y0, cx, cy, x1, y1, steps = 14) {
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      const x = mt * mt * x0 + 2 * mt * t * cx + t * t * x1;
+      const y = mt * mt * y0 + 2 * mt * t * cy + t * t * y1;
+      g.lineTo(x, y);
+    }
+  }
+
   addGroundSegment(x, topY, w, color, label, shape = {}) {
     const h = 44;
 
@@ -180,8 +190,8 @@ class LevelScene extends Phaser.Scene {
     g.fillStyle(color, 1);
     g.beginPath();
     g.moveTo(x - 34, topY + 40);
-    g.quadraticCurveTo(x + w * 0.18, topY - leftLift, x + w * 0.42, topY + dip * 0.25);
-    g.quadraticCurveTo(x + w * 0.72, topY + dip, x + w + 34, topY - rightLift * 0.45);
+    this.quadLine(g, x - 34, topY + 40, x + w * 0.18, topY - leftLift, x + w * 0.42, topY + dip * 0.25);
+    this.quadLine(g, x + w * 0.42, topY + dip * 0.25, x + w * 0.72, topY + dip, x + w + 34, topY - rightLift * 0.45);
     g.lineTo(x + w + 72, topY + 190);
     g.lineTo(x - 72, topY + 190);
     g.closePath();
@@ -191,8 +201,8 @@ class LevelScene extends Phaser.Scene {
     g.fillStyle(0x1f453d, 0.22);
     g.beginPath();
     g.moveTo(x - 20, topY + 80);
-    g.quadraticCurveTo(x + w * 0.25, topY + 48, x + w * 0.58, topY + 72);
-    g.quadraticCurveTo(x + w * 0.82, topY + 94, x + w + 38, topY + 60);
+    this.quadLine(g, x - 20, topY + 80, x + w * 0.25, topY + 48, x + w * 0.58, topY + 72);
+    this.quadLine(g, x + w * 0.58, topY + 72, x + w * 0.82, topY + 94, x + w + 38, topY + 60);
     g.lineTo(x + w + 58, topY + 182);
     g.lineTo(x - 56, topY + 182);
     g.closePath();
@@ -203,8 +213,8 @@ class LevelScene extends Phaser.Scene {
     grass.lineStyle(9, 0xc7ef8c, 0.92);
     grass.beginPath();
     grass.moveTo(x - 14, topY + 4);
-    grass.quadraticCurveTo(x + w * 0.24, topY - 8, x + w * 0.50, topY + 5);
-    grass.quadraticCurveTo(x + w * 0.76, topY + 14, x + w + 16, topY + 1);
+    this.quadLine(grass, x - 14, topY + 4, x + w * 0.24, topY - 8, x + w * 0.50, topY + 5, 10);
+    this.quadLine(grass, x + w * 0.50, topY + 5, x + w * 0.76, topY + 14, x + w + 16, topY + 1, 10);
     grass.strokePath();
 
     // Small grass tufts, sparse and soft.
@@ -233,15 +243,15 @@ class LevelScene extends Phaser.Scene {
     g.fillStyle(0x8f633b, 1);
     g.beginPath();
     g.moveTo(x, y + h * 0.55);
-    g.quadraticCurveTo(x + w * 0.35, y - 6, x + w, y + h * 0.35);
+    this.quadLine(g, x, y + h * 0.55, x + w * 0.35, y - 6, x + w, y + h * 0.35, 10);
     g.lineTo(x + w, y + h + 4);
-    g.quadraticCurveTo(x + w * 0.45, y + h + 10, x, y + h + 2);
+    this.quadLine(g, x + w, y + h + 4, x + w * 0.45, y + h + 10, x, y + h + 2, 10);
     g.closePath();
     g.fillPath();
     g.lineStyle(3, 0xc7924e, 0.65);
     g.beginPath();
     g.moveTo(x + 8, y + h * 0.45);
-    g.quadraticCurveTo(x + w * 0.42, y, x + w - 8, y + h * 0.35);
+    this.quadLine(g, x + 8, y + h * 0.45, x + w * 0.42, y, x + w - 8, y + h * 0.35, 10);
     g.strokePath();
   }
 
