@@ -1,13 +1,13 @@
 window.FTTM = window.FTTM || {};
 
 window.FTTM.GameSettings = {
-  version: "fluistervelden-prototype-v5.0-vertical-world-foundation",
-  worldWidth: 5700,
-  gravityY: 1500,
-  playerSpeed: 305,
-  jumpVelocity: -660,
+  version: "fluistervelden-prototype-v6.0-storybook-world",
+  worldWidth: 5400,
+  gravityY: 1450,
+  playerSpeed: 300,
+  jumpVelocity: -650,
   jumpCutVelocity: -300,
   acceleration: 2300,
-  deceleration: 2750,
-  buildMarker: "fluistervelden-prototype-v5.0-vertical-world-foundation-config"
+  deceleration: 2850,
+  buildMarker: "fluistervelden-prototype-v6.0-storybook-world-config"
 };
