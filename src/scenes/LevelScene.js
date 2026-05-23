@@ -26,11 +26,11 @@ class LevelScene extends Phaser.Scene {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
     this.isPortrait = this.screenH >= this.screenW;
-    this.worldZoom = this.isPortrait ? 0.56 : (this.screenH < 390 ? 0.56 : 0.60);
+    this.worldZoom = this.isPortrait ? 0.48 : (this.screenH < 390 ? 0.44 : 0.48);
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
-    this.worldW = s.worldWidth || 3400;
-    this.worldH = 1650;
+    this.worldW = s.worldWidth || 3200;
+    this.worldH = 1550;
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setZoom(this.worldZoom);
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
@@ -53,20 +53,19 @@ class LevelScene extends Phaser.Scene {
 
   makeTerrainPoints() {
     this.terrainPoints = [
-      { x: 0, y: 805 },
-      { x: 210, y: 790 },
-      { x: 430, y: 760 },
-      { x: 700, y: 780 },
-      { x: 940, y: 830 },
-      { x: 1120, y: 890 },
-      { x: 1320, y: 925 },
-      { x: 1540, y: 880 },
-      { x: 1760, y: 805 },
-      { x: 1990, y: 775 },
-      { x: 2240, y: 805 },
-      { x: 2480, y: 870 },
-      { x: 2760, y: 830 },
-      { x: 3100, y: 790 },
+      { x: 0, y: 800 },
+      { x: 220, y: 785 },
+      { x: 430, y: 770 },
+      { x: 660, y: 790 },
+      { x: 900, y: 845 },
+      { x: 1120, y: 900 },
+      { x: 1350, y: 910 },
+      { x: 1580, y: 850 },
+      { x: 1810, y: 780 },
+      { x: 2050, y: 760 },
+      { x: 2300, y: 805 },
+      { x: 2550, y: 855 },
+      { x: 2820, y: 815 },
       { x: this.worldW, y: 790 }
     ];
   }
@@ -108,7 +107,7 @@ class LevelScene extends Phaser.Scene {
       this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.07).setDepth(-82).setScrollFactor(0.45);
     }
 
-    const moon = this.add.container(3020, 280).setDepth(-78).setScrollFactor(0.62);
+    const moon = this.add.container(2860, 280).setDepth(-78).setScrollFactor(0.62);
     moon.add(this.add.circle(0, 0, 128, 0xffefbc, 0.12));
     moon.add(this.add.circle(0, 0, 74, 0xffefbc, 0.92));
     moon.add(this.add.circle(25, -18, 56, 0x153463, 0.22));
@@ -196,22 +195,29 @@ class LevelScene extends Phaser.Scene {
   }
 
   placeModularAssets() {
-    // cottage is staged behind the path; Amber starts in front of it, not under it
-    this.add.image(325, this.terrainY(320) - 8, 'v8-cottage').setOrigin(0.5, 1).setDepth(8).setScale(1.06);
-    this.makeFence(640, 980, 7);
-    this.makeLamp(950, this.terrainY(950), 0.72);
+    // Keep the first vertical slice readable in one wider camera composition.
+    // Assets are deliberately staged around the same ground curve so they feel part of the world.
+    this.add.image(305, this.terrainY(315) - 10, 'v8-cottage').setOrigin(0.5, 1).setDepth(8).setScale(1.00);
+    this.makeFence(520, 930, 6);
+    this.makeLamp(720, this.terrainY(720), 0.70);
 
-    // lake is a lower scenic layer, not the player surface
+    // Large tree and bench are now closer to the lake so the area reads as one composed place.
+    this.add.image(1160, this.terrainY(1160) + 10, 'v8-tree').setOrigin(0.5, 1).setDepth(10).setScale(0.95);
+    this.add.image(1415, this.terrainY(1415) + 8, 'v8-bench').setOrigin(0.5, 1).setDepth(19).setScale(0.76);
+
+    // Lake is lower than the walkable surface, so Amber reads as standing beside it instead of on it.
     const lake = this.add.graphics().setDepth(2);
+    const lakeX = 1515;
+    const lakeY = this.terrainY(lakeX) + 112;
     lake.fillStyle(0x6cc8c8, 0.62);
-    lake.fillEllipse(1420, this.terrainY(1420) + 95, 630, 190);
+    lake.fillEllipse(lakeX, lakeY, 680, 205);
     lake.fillStyle(0xbdeee5, 0.18);
-    lake.fillEllipse(1500, this.terrainY(1420) + 70, 390, 50);
-    for (let i = 0; i < 9; i++) {
-      const reedX = 1220 + i * 32;
-      this.add.line(reedX, this.terrainY(1420) + 55, 0, 0, 0, -Phaser.Math.Between(45, 95), 0x8fb96e, 0.6).setDepth(12);
+    lake.fillEllipse(lakeX + 75, lakeY - 28, 430, 50);
+    for (let i = 0; i < 12; i++) {
+      const reedX = 1265 + i * 34;
+      this.add.line(reedX, this.terrainY(reedX) + 48, 0, 0, 0, -Phaser.Math.Between(40, 95), 0x8fb96e, 0.55).setDepth(12);
     }
-    const frog = this.add.container(1350, this.terrainY(1420) + 38).setDepth(18);
+    const frog = this.add.container(1380, lakeY - 55).setDepth(18);
     frog.add(this.add.circle(0, 0, 24, 0x78b959, 0.98));
     frog.add(this.add.circle(-8, -14, 7, 0xffffff, 0.95));
     frog.add(this.add.circle(8, -14, 7, 0xffffff, 0.95));
@@ -219,20 +225,20 @@ class LevelScene extends Phaser.Scene {
     frog.add(this.add.circle(8, -14, 3, 0x0b1524, 0.95));
     this.tweens.add({ targets: frog, y: frog.y - 8, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.image(1780, this.terrainY(1780) + 2, 'v8-tree').setOrigin(0.5, 1).setDepth(10).setScale(1.12);
-    this.add.image(2045, this.terrainY(2045) + 10, 'v8-bench').setOrigin(0.5, 1).setDepth(18).setScale(0.82);
-    this.makeLamp(2170, this.terrainY(2170), 0.72);
+    this.makeLamp(1660, this.terrainY(1660), 0.72);
 
-    // hidden side pocket lower in foreground/valley
+    // Hidden side pocket remains lower and later in the slice, but the main landmarks are visible earlier.
     const pocket = this.add.graphics().setDepth(13);
     pocket.fillStyle(0x214f31, 0.96);
-    pocket.fillRoundedRect(2325, this.terrainY(2325) + 60, 420, 110, 50);
-    for (let i = 0; i < 13; i++) this.add.circle(2340 + i * 31, this.terrainY(2325) + 53 + Phaser.Math.Between(-10, 10), Phaser.Math.Between(23, 37), 0x2e6f3f, 0.92).setDepth(21);
-    this.add.image(2535, this.terrainY(2535) + 30, 'v8-blue-grapes').setOrigin(0.5, 1).setDepth(24).setScale(0.72);
+    pocket.fillRoundedRect(2260, this.terrainY(2260) + 62, 420, 110, 50);
+    for (let i = 0; i < 13; i++) {
+      this.add.circle(2280 + i * 31, this.terrainY(2260) + 52 + Phaser.Math.Between(-10, 10), Phaser.Math.Between(23, 37), 0x2e6f3f, 0.92).setDepth(21);
+    }
+    this.add.image(2460, this.terrainY(2460) + 28, 'v8-blue-grapes').setOrigin(0.5, 1).setDepth(24).setScale(0.72);
 
-    // foreground vignette plants for depth
-    for (let i = 0; i < 7; i++) {
-      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1120, 1320), Phaser.Math.Between(220, 410), Phaser.Math.Between(55, 110), 0x081a18, 0.18).setScrollFactor(1.08).setDepth(80);
+    // Foreground depth without hiding the key landmarks.
+    for (let i = 0; i < 5; i++) {
+      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1110, 1280), Phaser.Math.Between(220, 390), Phaser.Math.Between(55, 100), 0x081a18, 0.14).setScrollFactor(1.06).setDepth(80);
     }
   }
 
@@ -259,7 +265,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    const startX = 610;
+    const startX = 565;
     const startY = this.terrainY(startX);
     this.player = this.add.container(startX, startY).setDepth(40);
     this.shadow = this.add.ellipse(0, -3, 58, 14, 0x061018, 0.24).setDepth(-1);
@@ -274,9 +280,9 @@ class LevelScene extends Phaser.Scene {
   }
 
   createCollectibles() {
-    this.fluff = this.add.image(1810, this.terrainY(1780) - 330, 'v8-moonfluff').setDepth(46).setScale(0.48);
+    this.fluff = this.add.image(1188, this.terrainY(1160) - 280, 'v8-moonfluff').setDepth(46).setScale(0.42);
     this.tweens.add({ targets: this.fluff, y: this.fluff.y - 12, scale: 0.55, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.finishZone = new Phaser.Geom.Rectangle(2490, this.terrainY(2490) - 120, 260, 190);
+    this.finishZone = new Phaser.Geom.Rectangle(2460, this.terrainY(2460) - 130, 260, 210);
   }
 
   createAmbientMotion() {
@@ -373,9 +379,9 @@ class LevelScene extends Phaser.Scene {
 
   updateCamera(force = false) {
     const cam = this.cameras.main;
-    const forward = this.facing >= 0 ? this.visibleW * 0.28 : this.visibleW * 0.18;
+    const forward = this.facing >= 0 ? this.visibleW * 0.42 : this.visibleW * 0.38;
     let targetX = this.player.x - forward;
-    let targetY = this.player.y - this.visibleH * 0.64;
+    let targetY = this.player.y - this.visibleH * 0.60;
     targetX = Phaser.Math.Clamp(targetX, 0, this.worldW - this.visibleW);
     targetY = Phaser.Math.Clamp(targetY, 80, this.worldH - this.visibleH);
     if (force) {
