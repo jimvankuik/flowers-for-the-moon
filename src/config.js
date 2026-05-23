@@ -1,10 +1,13 @@
 window.FTTM = window.FTTM || {};
+
 window.FTTM.GameSettings = {
-  version: 'fluistervelden-prototype-v7.2-embedded-art-fix',
-  playerSpeed: 245,
-  acceleration: 1450,
-  deceleration: 1750,
-  jumpVelocity: -590,
-  jumpCutVelocity: -235,
-  gravity: 1500
+  version: "fluistervelden-prototype-v8.0-vertical-slice-foundation",
+  worldWidth: 3400,
+  gravityY: 1500,
+  playerSpeed: 265,
+  jumpVelocity: -610,
+  jumpCutVelocity: -280,
+  acceleration: 2200,
+  deceleration: 2700,
+  buildMarker: "fluistervelden-prototype-v8.0-vertical-slice-foundation-config"
 };
