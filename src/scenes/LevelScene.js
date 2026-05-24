@@ -10,6 +10,8 @@ class LevelScene extends Phaser.Scene {
     this.onGround = false;
     this.vx = 0;
     this.vy = 0;
+    this.jumpCount = 0;
+    this.maxJumps = 2;
   }
 
   preload() {
@@ -26,11 +28,11 @@ class LevelScene extends Phaser.Scene {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
     this.isPortrait = this.screenH >= this.screenW;
-    this.worldZoom = this.isPortrait ? 0.42 : (this.screenH < 390 ? 0.34 : 0.38);
+    this.worldZoom = this.isPortrait ? 0.34 : (this.screenH < 390 ? 0.285 : 0.31);
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
-    this.worldW = s.worldWidth || 3200;
-    this.worldH = 1550;
+    this.worldW = s.worldWidth || 4200;
+    this.worldH = 1750;
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setZoom(this.worldZoom);
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
@@ -52,21 +54,22 @@ class LevelScene extends Phaser.Scene {
   }
 
   makeTerrainPoints() {
+    // v8.3: one long, readable, continuous hillside.
+    // House starts high, then Amber descends gradually to the lake.
     this.terrainPoints = [
-      { x: 0, y: 800 },
-      { x: 220, y: 785 },
-      { x: 430, y: 770 },
-      { x: 660, y: 790 },
-      { x: 900, y: 845 },
-      { x: 1120, y: 900 },
-      { x: 1350, y: 910 },
-      { x: 1580, y: 850 },
-      { x: 1810, y: 780 },
-      { x: 2050, y: 760 },
-      { x: 2300, y: 805 },
-      { x: 2550, y: 855 },
-      { x: 2820, y: 815 },
-      { x: this.worldW, y: 790 }
+      { x: 0, y: 560 },
+      { x: 260, y: 540 },
+      { x: 560, y: 565 },
+      { x: 900, y: 650 },
+      { x: 1250, y: 765 },
+      { x: 1580, y: 865 },
+      { x: 1880, y: 940 },
+      { x: 2200, y: 965 },
+      { x: 2540, y: 920 },
+      { x: 2900, y: 850 },
+      { x: 3300, y: 790 },
+      { x: 3700, y: 825 },
+      { x: this.worldW, y: 870 }
     ];
   }
 
@@ -107,7 +110,7 @@ class LevelScene extends Phaser.Scene {
       this.add.ellipse(c[0], c[1], c[2], c[3], 0xffffff, 0.07).setDepth(-82).setScrollFactor(0.45);
     }
 
-    const moon = this.add.container(2860, 280).setDepth(-78).setScrollFactor(0.62);
+    const moon = this.add.container(3480, 230).setDepth(-78).setScrollFactor(0.62);
     moon.add(this.add.circle(0, 0, 128, 0xffefbc, 0.12));
     moon.add(this.add.circle(0, 0, 74, 0xffefbc, 0.92));
     moon.add(this.add.circle(25, -18, 56, 0x153463, 0.22));
@@ -195,29 +198,40 @@ class LevelScene extends Phaser.Scene {
   }
 
   placeModularAssets() {
-    // Keep the first vertical slice readable in one wider camera composition.
-    // Assets are deliberately staged around the same ground curve so they feel part of the world.
-    this.addAssetImage('v82-cottage', 305, this.terrainY(315) - 10, 1.00, 8, 'cottage');
-    this.makeFence(520, 930, 6);
-    this.makeLamp(720, this.terrainY(720), 0.70);
+    // v8.3 composition: compact but airy, with the cottage high on a real hill
+    // and a long descent toward the lake/bench/tree area.
+    this.addAssetImage('v82-cottage', 285, this.terrainY(285) - 8, 0.78, 9, 'cottage');
+    this.makeFence(470, 1080, 7);
+    this.makeLamp(625, this.terrainY(625), 0.62);
+    this.makeLamp(1160, this.terrainY(1160), 0.56);
 
-    // Large tree and bench are now closer to the lake so the area reads as one composed place.
-    this.addAssetImage('v82-tree', 1160, this.terrainY(1160) + 10, 0.95, 10, 'tree');
-    this.addAssetImage('v82-bench', 1415, this.terrainY(1415) + 8, 0.76, 19, 'bench');
+    // More breathing room between the house and lake.
+    this.drawFlowerMeadow(140, 1150, 30, 20);
+    this.drawFlowerMeadow(1280, 1720, 18, 16);
 
-    // Lake is lower than the walkable surface, so Amber reads as standing beside it instead of on it.
+    // Tree and bench are placed beside the water, not in it.
+    this.addAssetImage('v82-tree', 2040, this.terrainY(2040) + 4, 0.78, 11, 'tree');
+    this.addAssetImage('v82-bench', 1790, this.terrainY(1790) + 4, 0.60, 22, 'bench');
+    this.makeLamp(1705, this.terrainY(1705), 0.58);
+    this.makeLamp(2500, this.terrainY(2500), 0.64);
+
+    // Lake: lower and behind the walkable path, so Amber reads as walking along the shore.
     const lake = this.add.graphics().setDepth(2);
-    const lakeX = 1515;
-    const lakeY = this.terrainY(lakeX) + 112;
-    lake.fillStyle(0x6cc8c8, 0.62);
-    lake.fillEllipse(lakeX, lakeY, 680, 205);
+    const lakeX = 2170;
+    const lakeY = this.terrainY(lakeX) + 148;
+    lake.fillStyle(0x5dbfc5, 0.58);
+    lake.fillEllipse(lakeX, lakeY, 780, 230);
     lake.fillStyle(0xbdeee5, 0.18);
-    lake.fillEllipse(lakeX + 75, lakeY - 28, 430, 50);
-    for (let i = 0; i < 12; i++) {
-      const reedX = 1265 + i * 34;
-      this.add.line(reedX, this.terrainY(reedX) + 48, 0, 0, 0, -Phaser.Math.Between(40, 95), 0x8fb96e, 0.55).setDepth(12);
+    lake.fillEllipse(lakeX + 80, lakeY - 36, 480, 58);
+    lake.fillStyle(0xffffff, 0.10);
+    lake.fillEllipse(lakeX - 110, lakeY + 5, 260, 22);
+
+    for (let i = 0; i < 18; i++) {
+      const reedX = 1840 + i * 34;
+      this.add.line(reedX, this.terrainY(reedX) + 34, 0, 0, 0, -Phaser.Math.Between(38, 85), 0x8fb96e, 0.55).setDepth(13);
     }
-    const frog = this.add.container(1380, lakeY - 55).setDepth(18);
+
+    const frog = this.add.container(2130, lakeY - 50).setDepth(18);
     frog.add(this.add.circle(0, 0, 24, 0x78b959, 0.98));
     frog.add(this.add.circle(-8, -14, 7, 0xffffff, 0.95));
     frog.add(this.add.circle(8, -14, 7, 0xffffff, 0.95));
@@ -225,23 +239,31 @@ class LevelScene extends Phaser.Scene {
     frog.add(this.add.circle(8, -14, 3, 0x0b1524, 0.95));
     this.tweens.add({ targets: frog, y: frog.y - 8, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.makeLamp(1660, this.terrainY(1660), 0.72);
-
-    // Hidden side pocket remains lower and later in the slice, but the main landmarks are visible earlier.
+    // A later rise keeps the slice expandable after the lake.
+    this.makeFence(2700, 3300, 6);
+    this.drawFlowerMeadow(2760, 3380, 20, 17);
     const pocket = this.add.graphics().setDepth(13);
-    pocket.fillStyle(0x214f31, 0.96);
-    pocket.fillRoundedRect(2260, this.terrainY(2260) + 62, 420, 110, 50);
+    pocket.fillStyle(0x214f31, 0.94);
+    pocket.fillRoundedRect(3220, this.terrainY(3220) + 54, 400, 104, 50);
     for (let i = 0; i < 13; i++) {
-      this.add.circle(2280 + i * 31, this.terrainY(2260) + 52 + Phaser.Math.Between(-10, 10), Phaser.Math.Between(23, 37), 0x2e6f3f, 0.92).setDepth(21);
+      this.add.circle(3240 + i * 29, this.terrainY(3220) + 44 + Phaser.Math.Between(-8, 10), Phaser.Math.Between(20, 34), 0x2e6f3f, 0.90).setDepth(21);
     }
-    this.addAssetImage('v82-blue-grapes', 2460, this.terrainY(2460) + 28, 0.72, 24, 'blueGrapes');
+    this.addAssetImage('v82-blue-grapes', 3430, this.terrainY(3430) + 26, 0.64, 24, 'blueGrapes');
 
-    // Foreground depth without hiding the key landmarks.
-    for (let i = 0; i < 5; i++) {
-      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1110, 1280), Phaser.Math.Between(220, 390), Phaser.Math.Between(55, 100), 0x081a18, 0.14).setScrollFactor(1.06).setDepth(80);
+    // Foreground depth; kept low so it does not hide the playable landmarks.
+    for (let i = 0; i < 7; i++) {
+      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1180, 1450), Phaser.Math.Between(260, 520), Phaser.Math.Between(60, 120), 0x061617, 0.16).setScrollFactor(1.05).setDepth(80);
     }
   }
 
+  drawFlowerMeadow(startX, endX, count, depth) {
+    for (let i = 0; i < count; i++) {
+      const x = Phaser.Math.Linear(startX, endX, i / Math.max(1, count - 1)) + Phaser.Math.Between(-18, 18);
+      const y = this.terrainY(x) - Phaser.Math.Between(18, 34);
+      this.add.line(x, y + 22, 0, 0, 0, -Phaser.Math.Between(34, 70), 0x8fbd79, 0.55).setDepth(depth);
+      this.add.circle(x, y - Phaser.Math.Between(8, 38), Phaser.Math.Between(5, 9), Phaser.Math.RND.pick([0xf2d2ea, 0xcce5ff, 0xffe39d, 0xffffff, 0xd7c2ff]), 0.82).setDepth(depth + 1);
+    }
+  }
 
   addAssetImage(key, x, y, scale, depth, fallbackType) {
     if (this.textures.exists(key)) {
@@ -341,7 +363,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    const startX = 565;
+    const startX = 560;
     const startY = this.terrainY(startX);
     this.player = this.add.container(startX, startY).setDepth(40);
     this.shadow = this.add.ellipse(0, -3, 58, 14, 0x061018, 0.24).setDepth(-1);
@@ -356,9 +378,9 @@ class LevelScene extends Phaser.Scene {
   }
 
   createCollectibles() {
-    this.fluff = this.addAssetImage('v82-moonfluff', 1188, this.terrainY(1160) - 280, 0.42, 46, 'moonfluff');
+    this.fluff = this.addAssetImage('v82-moonfluff', 2040, this.terrainY(2040) - 285, 0.40, 46, 'moonfluff');
     this.tweens.add({ targets: this.fluff, y: this.fluff.y - 12, scale: 0.55, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.finishZone = new Phaser.Geom.Rectangle(2460, this.terrainY(2460) - 130, 260, 210);
+    this.finishZone = new Phaser.Geom.Rectangle(3420, this.terrainY(3420) - 150, 300, 230);
   }
 
   createAmbientMotion() {
@@ -406,9 +428,11 @@ class LevelScene extends Phaser.Scene {
     }
 
     const jumpDown = !!input.jump && !this.inputLocked;
-    if (jumpDown && !this.jumpWasDown && this.onGround) {
+    if (jumpDown && !this.jumpWasDown && this.jumpCount < this.maxJumps) {
       this.vy = s.jumpVelocity;
       this.onGround = false;
+      this.jumpCount += 1;
+      this.player.rotation = 0;
     }
     if (!jumpDown && this.jumpWasDown && this.vy < s.jumpCutVelocity) this.vy = s.jumpCutVelocity;
     this.jumpWasDown = jumpDown;
@@ -418,6 +442,7 @@ class LevelScene extends Phaser.Scene {
     if (this.onGround) {
       this.player.y = groundY;
       this.vy = 0;
+      this.jumpCount = 0;
     } else {
       this.vy += s.gravityY * dt;
       this.player.y += this.vy * dt;
@@ -425,6 +450,7 @@ class LevelScene extends Phaser.Scene {
         this.player.y = groundY;
         this.vy = 0;
         this.onGround = true;
+        this.jumpCount = 0;
       }
     }
 
@@ -455,9 +481,9 @@ class LevelScene extends Phaser.Scene {
 
   updateCamera(force = false) {
     const cam = this.cameras.main;
-    const forward = this.facing >= 0 ? this.visibleW * 0.42 : this.visibleW * 0.38;
+    const forward = this.facing >= 0 ? this.visibleW * 0.43 : this.visibleW * 0.40;
     let targetX = this.player.x - forward;
-    let targetY = this.player.y - this.visibleH * 0.54;
+    let targetY = this.player.y - this.visibleH * 0.52;
     targetX = Phaser.Math.Clamp(targetX, 0, this.worldW - this.visibleW);
     targetY = Phaser.Math.Clamp(targetY, 80, this.worldH - this.visibleH);
     if (force) {
