@@ -13,12 +13,12 @@ class LevelScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.svg('v8-cottage', 'assets/v8/cottage.svg', { width: 420, height: 340 });
-    this.load.svg('v8-tree', 'assets/v8/tree.svg', { width: 360, height: 430 });
-    this.load.svg('v8-bench', 'assets/v8/bench.svg', { width: 220, height: 130 });
-    this.load.svg('v8-lamp', 'assets/v8/lamp.svg', { width: 90, height: 210 });
-    this.load.svg('v8-moonfluff', 'assets/v8/moonfluff.svg', { width: 160, height: 160 });
-    this.load.svg('v8-blue-grapes', 'assets/v8/plant-blue-grapes.svg', { width: 130, height: 130 });
+    this.load.svg('v82-cottage', 'assets/v8/cottage.svg', { width: 420, height: 340 });
+    this.load.svg('v82-tree', 'assets/v8/tree.svg', { width: 360, height: 430 });
+    this.load.svg('v82-bench', 'assets/v8/bench.svg', { width: 220, height: 130 });
+    this.load.svg('v82-lamp', 'assets/v8/lamp.svg', { width: 90, height: 210 });
+    this.load.svg('v82-moonfluff', 'assets/v8/moonfluff.svg', { width: 160, height: 160 });
+    this.load.svg('v82-blue-grapes', 'assets/v8/plant-blue-grapes.svg', { width: 130, height: 130 });
   }
 
   create() {
@@ -26,7 +26,7 @@ class LevelScene extends Phaser.Scene {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
     this.isPortrait = this.screenH >= this.screenW;
-    this.worldZoom = this.isPortrait ? 0.48 : (this.screenH < 390 ? 0.44 : 0.48);
+    this.worldZoom = this.isPortrait ? 0.42 : (this.screenH < 390 ? 0.34 : 0.38);
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
     this.worldW = s.worldWidth || 3200;
@@ -197,13 +197,13 @@ class LevelScene extends Phaser.Scene {
   placeModularAssets() {
     // Keep the first vertical slice readable in one wider camera composition.
     // Assets are deliberately staged around the same ground curve so they feel part of the world.
-    this.add.image(305, this.terrainY(315) - 10, 'v8-cottage').setOrigin(0.5, 1).setDepth(8).setScale(1.00);
+    this.addAssetImage('v82-cottage', 305, this.terrainY(315) - 10, 1.00, 8, 'cottage');
     this.makeFence(520, 930, 6);
     this.makeLamp(720, this.terrainY(720), 0.70);
 
     // Large tree and bench are now closer to the lake so the area reads as one composed place.
-    this.add.image(1160, this.terrainY(1160) + 10, 'v8-tree').setOrigin(0.5, 1).setDepth(10).setScale(0.95);
-    this.add.image(1415, this.terrainY(1415) + 8, 'v8-bench').setOrigin(0.5, 1).setDepth(19).setScale(0.76);
+    this.addAssetImage('v82-tree', 1160, this.terrainY(1160) + 10, 0.95, 10, 'tree');
+    this.addAssetImage('v82-bench', 1415, this.terrainY(1415) + 8, 0.76, 19, 'bench');
 
     // Lake is lower than the walkable surface, so Amber reads as standing beside it instead of on it.
     const lake = this.add.graphics().setDepth(2);
@@ -234,12 +234,88 @@ class LevelScene extends Phaser.Scene {
     for (let i = 0; i < 13; i++) {
       this.add.circle(2280 + i * 31, this.terrainY(2260) + 52 + Phaser.Math.Between(-10, 10), Phaser.Math.Between(23, 37), 0x2e6f3f, 0.92).setDepth(21);
     }
-    this.add.image(2460, this.terrainY(2460) + 28, 'v8-blue-grapes').setOrigin(0.5, 1).setDepth(24).setScale(0.72);
+    this.addAssetImage('v82-blue-grapes', 2460, this.terrainY(2460) + 28, 0.72, 24, 'blueGrapes');
 
     // Foreground depth without hiding the key landmarks.
     for (let i = 0; i < 5; i++) {
       this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1110, 1280), Phaser.Math.Between(220, 390), Phaser.Math.Between(55, 100), 0x081a18, 0.14).setScrollFactor(1.06).setDepth(80);
     }
+  }
+
+
+  addAssetImage(key, x, y, scale, depth, fallbackType) {
+    if (this.textures.exists(key)) {
+      return this.add.image(x, y, key).setOrigin(0.5, 1).setDepth(depth).setScale(scale);
+    }
+    console.warn('FTTM asset fallback used:', key);
+    if (fallbackType === 'cottage') return this.drawFallbackCottage(x, y, scale, depth);
+    if (fallbackType === 'tree') return this.drawFallbackTree(x, y, scale, depth);
+    if (fallbackType === 'bench') return this.drawFallbackBench(x, y, scale, depth);
+    if (fallbackType === 'lamp') return this.drawFallbackLamp(x, y, scale, depth);
+    if (fallbackType === 'moonfluff') return this.drawFallbackMoonfluff(x, y, scale, depth);
+    if (fallbackType === 'blueGrapes') return this.drawFallbackBlueGrapes(x, y, scale, depth);
+    return this.add.container(x, y).setDepth(depth).setScale(scale);
+  }
+
+  drawFallbackCottage(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.ellipse(0, 12, 240, 28, 0x081821, 0.28));
+    c.add(this.add.rectangle(0, -92, 250, 185, 0xffdca0, 1).setStrokeStyle(4, 0xe7b374, 0.35));
+    c.add(this.add.triangle(0, -210, -150, 0, 150, 0, 0, -135, 0xc96f5f, 1));
+    c.add(this.add.rectangle(0, -98, 46, 86, 0x8e5a35, 1));
+    for (const wx of [-70,70]) for (const wy of [-140,-70]) {
+      c.add(this.add.rectangle(wx, wy, 44, 44, 0xfff1b4, 0.85).setStrokeStyle(4, 0x9db8aa, 0.8));
+    }
+    c.add(this.add.rectangle(92, -245, 34, 92, 0x8a5733, 1));
+    c.add(this.add.rectangle(92, -294, 52, 15, 0xd0d3d4, 1));
+    return c;
+  }
+
+  drawFallbackTree(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.ellipse(0, 8, 100, 25, 0x081821, 0.24));
+    c.add(this.add.rectangle(0, -90, 48, 180, 0x8d552f, 1));
+    const blobs = [[-80,-250,100],[0,-285,115],[80,-245,100],[-42,-190,115],[54,-180,120],[0,-220,130]];
+    for (const b of blobs) c.add(this.add.circle(b[0], b[1], b[2], Phaser.Math.RND.pick([0x4faa5a,0x3f9650,0x2f7b44]), 0.96));
+    c.add(this.add.rectangle(-12, -205, 160, 16, 0x9b6338, 1).setRotation(-0.06));
+    c.add(this.add.rectangle(62, -150, 145, 16, 0x9b6338, 1).setRotation(0.04));
+    return c;
+  }
+
+  drawFallbackBench(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.ellipse(0, 4, 150, 18, 0x081821, 0.25));
+    c.add(this.add.rectangle(0, -58, 150, 20, 0x9b6338, 1));
+    c.add(this.add.rectangle(0, -20, 160, 20, 0x9b6338, 1));
+    c.add(this.add.rectangle(-52, 18, 10, 72, 0x6b4026, 1));
+    c.add(this.add.rectangle(52, 18, 10, 72, 0x6b4026, 1));
+    return c;
+  }
+
+  drawFallbackLamp(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.rectangle(0, -60, 10, 126, 0x29313c, 1));
+    c.add(this.add.circle(0, -140, 22, 0xffed9a, 0.95));
+    c.add(this.add.circle(0, -140, 58, 0xffed9a, 0.14));
+    return c;
+  }
+
+  drawFallbackMoonfluff(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.circle(0, 0, 52, 0xfff4b0, 0.14));
+    c.add(this.add.circle(0, 0, 22, 0xfff4b0, 1));
+    for (let i=0;i<12;i++) {
+      const a = i * Math.PI / 6;
+      c.add(this.add.line(0, 0, Math.cos(a)*26, Math.sin(a)*26, Math.cos(a)*58, Math.sin(a)*58, 0xfff4b0, 0.9).setLineWidth(4));
+    }
+    return c;
+  }
+
+  drawFallbackBlueGrapes(x, y, scale, depth) {
+    const c = this.add.container(x, y).setDepth(depth).setScale(scale);
+    c.add(this.add.line(0, -10, 0, 0, 15, -75, 0x3f7c3f, 1).setLineWidth(7));
+    for (let i=0;i<7;i++) c.add(this.add.circle(Phaser.Math.Between(-18,18), -Phaser.Math.Between(45,95), 9, 0x8fa1ff, 0.95));
+    return c;
   }
 
   makeFence(startX, endX, count) {
@@ -258,7 +334,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   makeLamp(x, groundY, scale = 1) {
-    const lamp = this.add.image(x, groundY + 5, 'v8-lamp').setOrigin(0.5, 1).setDepth(16).setScale(scale);
+    const lamp = this.addAssetImage('v82-lamp', x, groundY + 5, scale, 16, 'lamp');
     const glow = this.add.circle(x, groundY - 145 * scale, 65 * scale, 0xffe59a, 0.13).setDepth(15);
     this.tweens.add({ targets: glow, alpha: 0.22, scale: 1.08, duration: 1800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return lamp;
@@ -280,7 +356,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createCollectibles() {
-    this.fluff = this.add.image(1188, this.terrainY(1160) - 280, 'v8-moonfluff').setDepth(46).setScale(0.42);
+    this.fluff = this.addAssetImage('v82-moonfluff', 1188, this.terrainY(1160) - 280, 0.42, 46, 'moonfluff');
     this.tweens.add({ targets: this.fluff, y: this.fluff.y - 12, scale: 0.55, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.finishZone = new Phaser.Geom.Rectangle(2460, this.terrainY(2460) - 130, 260, 210);
   }
@@ -381,7 +457,7 @@ class LevelScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const forward = this.facing >= 0 ? this.visibleW * 0.42 : this.visibleW * 0.38;
     let targetX = this.player.x - forward;
-    let targetY = this.player.y - this.visibleH * 0.60;
+    let targetY = this.player.y - this.visibleH * 0.54;
     targetX = Phaser.Math.Clamp(targetX, 0, this.worldW - this.visibleW);
     targetY = Phaser.Math.Clamp(targetY, 80, this.worldH - this.visibleH);
     if (force) {
