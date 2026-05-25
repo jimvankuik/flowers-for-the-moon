@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 210">
-  <ellipse cx="45" cy="198" rx="24" ry="7" fill="#06151a" opacity=".3"/>
-  <rect x="39" y="69" width="12" height="126" rx="5" fill="#29313c"/>
-  <circle cx="45" cy="54" r="46" fill="#ffe89f" opacity=".16"/>
-  <circle cx="45" cy="54" r="25" fill="#ffd867" opacity=".95"/>
-  <path d="M24 54 Q45 22 66 54 Q58 78 45 82 Q32 78 24 54Z" fill="#f6d36f" opacity=".78"/>
-  <path d="M30 30H60" stroke="#273039" stroke-width="8" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 260">
+ <defs><filter id="glow"><feGaussianBlur stdDeviation="10"/></filter></defs>
+ <ellipse cx="60" cy="247" rx="28" ry="8" fill="#061018" opacity=".22"/>
+ <rect x="53" y="82" width="14" height="160" rx="7" fill="#26313c"/>
+ <circle cx="60" cy="62" r="55" fill="#ffd96d" opacity=".16" filter="url(#glow)"/>
+ <circle cx="60" cy="62" r="25" fill="#ffe89a" opacity=".95"/>
+ <path d="M42 70 L60 32 L78 70Z" fill="#4a4a51" opacity=".3"/>
 </svg>
