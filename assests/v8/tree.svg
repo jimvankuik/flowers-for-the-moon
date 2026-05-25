@@ -1,13 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 520">
- <defs><filter id="b"><feGaussianBlur stdDeviation="7"/></filter><linearGradient id="tr" x1="0" x2="1"><stop stop-color="#6e3f25"/><stop offset="1" stop-color="#a96a39"/></linearGradient></defs>
- <ellipse cx="230" cy="500" rx="120" ry="22" fill="#061018" opacity=".25"/>
- <path d="M202 492 C214 390 197 313 231 221 C264 313 253 399 270 492Z" fill="url(#tr)"/>
- <path d="M227 250 C182 306 144 319 112 341" stroke="#7b4b2d" stroke-width="24" stroke-linecap="round" fill="none" opacity=".75"/>
- <path d="M238 248 C292 294 330 301 372 322" stroke="#7b4b2d" stroke-width="20" stroke-linecap="round" fill="none" opacity=".68"/>
- <g filter="url(#b)" opacity=".25"><circle cx="230" cy="172" r="164" fill="#1f512e"/></g>
- <circle cx="142" cy="178" r="102" fill="#3f8f4d"/><circle cx="228" cy="124" r="126" fill="#4fa75a"/><circle cx="322" cy="180" r="104" fill="#438f4c"/><circle cx="179" cy="257" r="114" fill="#2d743f"/><circle cx="282" cy="259" r="132" fill="#3f9650"/><circle cx="230" cy="205" r="145" fill="#54ad5d" opacity=".86"/>
- <path d="M112 332 C170 295 239 298 319 336" stroke="#8e5d34" stroke-width="18" stroke-linecap="round" fill="none"/>
- <path d="M152 266 C211 236 271 244 350 273" stroke="#9e683a" stroke-width="17" stroke-linecap="round" fill="none"/>
- <path d="M272 201 C310 187 348 190 386 207" stroke="#9e683a" stroke-width="15" stroke-linecap="round" fill="none"/>
- <circle cx="155" cy="151" r="9" fill="#ff7a7a"/><circle cx="276" cy="143" r="8" fill="#ff7a7a"/><circle cx="337" cy="252" r="9" fill="#ff7a7a"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 430">
+  <defs>
+    <linearGradient id="trunk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#764321"/><stop offset=".55" stop-color="#a56839"/><stop offset="1" stop-color="#63391e"/></linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="glow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <ellipse cx="181" cy="404" rx="90" ry="20" fill="#061018" opacity=".28"/>
+  <path d="M151 402 C160 330 156 247 147 179 C166 188 186 191 205 179 C198 248 202 329 214 402Z" fill="url(#trunk)"/>
+  <path d="M177 392 C186 299 183 244 170 190" fill="none" stroke="#4a2c18" stroke-width="7" opacity=".22"/>
+  <g opacity=".98">
+    <circle cx="112" cy="175" r="84" fill="#3f9350"/>
+    <circle cx="177" cy="125" r="104" fill="#57a95c"/>
+    <circle cx="252" cy="178" r="92" fill="#439853"/>
+    <circle cx="134" cy="238" r="102" fill="#4ca25a"/>
+    <circle cx="226" cy="241" r="111" fill="#3f934f"/>
+    <circle cx="181" cy="200" r="119" fill="#5bb663" opacity=".92"/>
+  </g>
+  <g opacity=".18"><circle cx="128" cy="152" r="64" fill="#fff6b8"/><circle cx="201" cy="96" r="55" fill="#fff6b8"/></g>
+  <path d="M80 235 C134 221 183 219 239 229" fill="none" stroke="#9b6338" stroke-width="19" stroke-linecap="round"/>
+  <path d="M116 283 C163 273 231 273 286 286" fill="none" stroke="#a96b3c" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="238" cy="112" r="19" fill="#fff2a4" filter="url(#glow)"/>
+  <g stroke="#fff2a4" stroke-width="4" stroke-linecap="round" opacity=".9">
+    <path d="M238 72 L238 99 M238 125 L238 151 M198 112 L225 112 M251 112 L279 112 M210 84 L229 103 M247 121 L267 142 M267 84 L248 103 M229 121 L209 141"/>
+  </g>
 </svg>

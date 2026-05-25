@@ -1,8 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 260">
- <defs><filter id="glow"><feGaussianBlur stdDeviation="10"/></filter></defs>
- <ellipse cx="60" cy="247" rx="28" ry="8" fill="#061018" opacity=".22"/>
- <rect x="53" y="82" width="14" height="160" rx="7" fill="#26313c"/>
- <circle cx="60" cy="62" r="55" fill="#ffd96d" opacity=".16" filter="url(#glow)"/>
- <circle cx="60" cy="62" r="25" fill="#ffe89a" opacity=".95"/>
- <path d="M42 70 L60 32 L78 70Z" fill="#4a4a51" opacity=".3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 210">
+  <defs><filter id="glow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <ellipse cx="45" cy="202" rx="26" ry="7" fill="#071018" opacity=".28"/>
+  <rect x="39" y="76" width="12" height="126" rx="5" fill="#24313a"/>
+  <path d="M28 75 H62 L55 43 H35Z" fill="#263742"/>
+  <circle cx="45" cy="55" r="24" fill="#ffed9a" opacity=".95" filter="url(#glow)"/>
+  <circle cx="45" cy="55" r="46" fill="#ffed9a" opacity=".12"/>
+  <rect x="31" y="38" width="28" height="33" rx="6" fill="none" stroke="#ffeeb2" stroke-width="3" opacity=".65"/>
+  <path d="M30 38 L45 22 L60 38" fill="none" stroke="#24313a" stroke-width="6" stroke-linecap="round"/>
 </svg>
