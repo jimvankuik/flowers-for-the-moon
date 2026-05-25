@@ -15,12 +15,12 @@ class LevelScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.svg('v82-cottage', 'assets/v8/cottage.svg?v=8-5', { width: 420, height: 340 });
-    this.load.svg('v82-tree', 'assets/v8/tree.svg?v=8-5', { width: 360, height: 430 });
-    this.load.svg('v82-bench', 'assets/v8/bench.svg?v=8-5', { width: 220, height: 130 });
-    this.load.svg('v82-lamp', 'assets/v8/lamp.svg?v=8-5', { width: 90, height: 210 });
-    this.load.svg('v82-moonfluff', 'assets/v8/moonfluff.svg?v=8-5', { width: 160, height: 160 });
-    this.load.svg('v82-blue-grapes', 'assets/v8/plant-blue-grapes.svg?v=8-5', { width: 130, height: 130 });
+    this.load.svg('v82-cottage', 'assets/v8/cottage.svg?v=8-6', { width: 420, height: 340 });
+    this.load.svg('v82-tree', 'assets/v8/tree.svg?v=8-6', { width: 360, height: 430 });
+    this.load.svg('v82-bench', 'assets/v8/bench.svg?v=8-6', { width: 220, height: 130 });
+    this.load.svg('v82-lamp', 'assets/v8/lamp.svg?v=8-6', { width: 90, height: 210 });
+    this.load.svg('v82-moonfluff', 'assets/v8/moonfluff.svg?v=8-6', { width: 160, height: 160 });
+    this.load.svg('v82-blue-grapes', 'assets/v8/plant-blue-grapes.svg?v=8-6', { width: 130, height: 130 });
   }
 
   create() {
@@ -419,7 +419,7 @@ class LevelScene extends Phaser.Scene {
     if (dir !== 0) {
       this.facing = dir;
       this.player.setScale(dir, 1);
-      const walkBob = Math.sin(time * 0.018) * 2;
+      const walkBob = Math.sin(time * 0.021) * 1.4;
       this.playerBody.body.y = -45 + walkBob;
       this.playerBody.head.y = -103 + walkBob * 0.35;
     } else {
@@ -481,11 +481,11 @@ class LevelScene extends Phaser.Scene {
 
   updateCamera(force = false) {
     const cam = this.cameras.main;
-    // v8.5: keep the good v8.3 movement/zoom, but restore the nicer camera feel:
+    // v8.6: correct asset paths, restore responsive movement and camera feel:
     // camera starts following earlier horizontally and softly follows real height changes.
-    const lookAhead = Phaser.Math.Clamp(this.vx * 0.28, -95, 135);
-    const anchorX = this.visibleW * 0.30;
-    const anchorY = this.visibleH * 0.48;
+    const lookAhead = Phaser.Math.Clamp(this.vx * 0.34, -120, 165);
+    const anchorX = this.visibleW * 0.27;
+    const anchorY = this.visibleH * 0.50;
     let targetX = this.player.x - anchorX + lookAhead;
     let targetY = this.player.y - anchorY;
     targetX = Phaser.Math.Clamp(targetX, 0, Math.max(0, this.worldW - this.visibleW));
@@ -494,8 +494,8 @@ class LevelScene extends Phaser.Scene {
       cam.scrollX = targetX;
       cam.scrollY = targetY;
     } else {
-      cam.scrollX = Phaser.Math.Linear(cam.scrollX, targetX, 0.078);
-      cam.scrollY = Phaser.Math.Linear(cam.scrollY, targetY, 0.052);
+      cam.scrollX = Phaser.Math.Linear(cam.scrollX, targetX, 0.105);
+      cam.scrollY = Phaser.Math.Linear(cam.scrollY, targetY, 0.082);
     }
   }
 }
