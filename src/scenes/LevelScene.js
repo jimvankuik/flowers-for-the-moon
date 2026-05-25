@@ -15,12 +15,12 @@ class LevelScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.svg('v82-cottage', 'assets/v8/cottage.svg', { width: 420, height: 340 });
-    this.load.svg('v82-tree', 'assets/v8/tree.svg', { width: 360, height: 430 });
-    this.load.svg('v82-bench', 'assets/v8/bench.svg', { width: 220, height: 130 });
-    this.load.svg('v82-lamp', 'assets/v8/lamp.svg', { width: 90, height: 210 });
-    this.load.svg('v82-moonfluff', 'assets/v8/moonfluff.svg', { width: 160, height: 160 });
-    this.load.svg('v82-blue-grapes', 'assets/v8/plant-blue-grapes.svg', { width: 130, height: 130 });
+    this.load.svg('v82-cottage', 'assets/v8/cottage.svg?v=8-5', { width: 420, height: 340 });
+    this.load.svg('v82-tree', 'assets/v8/tree.svg?v=8-5', { width: 360, height: 430 });
+    this.load.svg('v82-bench', 'assets/v8/bench.svg?v=8-5', { width: 220, height: 130 });
+    this.load.svg('v82-lamp', 'assets/v8/lamp.svg?v=8-5', { width: 90, height: 210 });
+    this.load.svg('v82-moonfluff', 'assets/v8/moonfluff.svg?v=8-5', { width: 160, height: 160 });
+    this.load.svg('v82-blue-grapes', 'assets/v8/plant-blue-grapes.svg?v=8-5', { width: 130, height: 130 });
   }
 
   create() {
@@ -28,11 +28,11 @@ class LevelScene extends Phaser.Scene {
     this.screenW = this.scale.width;
     this.screenH = this.scale.height;
     this.isPortrait = this.screenH >= this.screenW;
-    this.worldZoom = this.isPortrait ? 0.30 : (this.screenH < 390 ? 0.235 : 0.255);
+    this.worldZoom = this.isPortrait ? 0.34 : (this.screenH < 390 ? 0.285 : 0.31);
     this.visibleW = this.screenW / this.worldZoom;
     this.visibleH = this.screenH / this.worldZoom;
-    this.worldW = s.worldWidth || 7600;
-    this.worldH = 2450;
+    this.worldW = s.worldWidth || 4200;
+    this.worldH = 1750;
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH);
     this.cameras.main.setZoom(this.worldZoom);
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH);
@@ -57,21 +57,19 @@ class LevelScene extends Phaser.Scene {
     // v8.3: one long, readable, continuous hillside.
     // House starts high, then Amber descends gradually to the lake.
     this.terrainPoints = [
-      { x: 0, y: 520 },
-      { x: 340, y: 500 },
-      { x: 760, y: 560 },
-      { x: 1180, y: 690 },
-      { x: 1620, y: 855 },
-      { x: 2050, y: 1015 },
-      { x: 2520, y: 1110 },
-      { x: 3040, y: 1130 },
-      { x: 3500, y: 1080 },
-      { x: 3980, y: 970 },
-      { x: 4560, y: 855 },
-      { x: 5200, y: 790 },
-      { x: 5900, y: 845 },
-      { x: 6700, y: 780 },
-      { x: this.worldW, y: 800 }
+      { x: 0, y: 560 },
+      { x: 260, y: 540 },
+      { x: 560, y: 565 },
+      { x: 900, y: 650 },
+      { x: 1250, y: 765 },
+      { x: 1580, y: 865 },
+      { x: 1880, y: 940 },
+      { x: 2200, y: 965 },
+      { x: 2540, y: 920 },
+      { x: 2900, y: 850 },
+      { x: 3300, y: 790 },
+      { x: 3700, y: 825 },
+      { x: this.worldW, y: 870 }
     ];
   }
 
@@ -99,9 +97,9 @@ class LevelScene extends Phaser.Scene {
     bg.fillGradientStyle(0x07152f, 0x0e2a5d, 0x153463, 0x071221, 1);
     bg.fillRect(0, 0, this.worldW, this.worldH);
 
-    this.drawDistantHills(0, 1300, 0x0e253b, 0.52, 0.18, 720, -140);
-    this.drawDistantHills(120, 1210, 0x1a405d, 0.40, 0.28, 560, 0);
-    this.drawDistantHills(220, 1135, 0x2d5d66, 0.24, 0.42, 430, 70);
+    this.drawDistantHills(0, 980, 0x122a42, 0.44, 0.20, 600, -80);
+    this.drawDistantHills(120, 930, 0x1d4561, 0.34, 0.30, 480, 20);
+    this.drawDistantHills(220, 880, 0x2d5d66, 0.20, 0.42, 360, 70);
 
     for (let i = 0; i < 140; i++) {
       const star = this.add.circle(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(35, 680), Phaser.Math.FloatBetween(0.8, 2.2), 0xffffff, Phaser.Math.FloatBetween(0.16, 0.58)).setDepth(-84).setScrollFactor(0.35);
@@ -200,48 +198,40 @@ class LevelScene extends Phaser.Scene {
   }
 
   placeModularAssets() {
-    // v8.4: based on the new direction: small cottage high on a hill,
-    // a long airy descent, then tree/bench/lake as one readable storybook composition.
-    this.addAssetImage('v82-cottage', 310, this.terrainY(310) + 8, 0.56, 12, 'cottage');
-    this.makeFence(360, 1980, 11);
-    this.makeLamp(520, this.terrainY(520), 0.58);
-    this.makeLamp(1160, this.terrainY(1160), 0.50);
-    this.makeLamp(1900, this.terrainY(1900), 0.52);
+    // v8.3 composition: compact but airy, with the cottage high on a real hill
+    // and a long descent toward the lake/bench/tree area.
+    this.addAssetImage('v82-cottage', 285, this.terrainY(285) - 8, 0.78, 9, 'cottage');
+    this.makeFence(470, 1080, 7);
+    this.makeLamp(625, this.terrainY(625), 0.62);
+    this.makeLamp(1160, this.terrainY(1160), 0.56);
 
-    this.drawFlowerMeadow(120, 860, 30, 20);
-    this.drawFlowerMeadow(980, 2080, 44, 20);
+    // More breathing room between the house and lake.
+    this.drawFlowerMeadow(140, 1150, 30, 20);
+    this.drawFlowerMeadow(1280, 1720, 18, 16);
 
-    // Long open valley: no big props here, just path, flowers and distant depth.
-    this.drawFlowerMeadow(2100, 2860, 24, 18);
+    // Tree and bench are placed beside the water, not in it.
+    this.addAssetImage('v82-tree', 2040, this.terrainY(2040) + 4, 0.78, 11, 'tree');
+    this.addAssetImage('v82-bench', 1790, this.terrainY(1790) + 4, 0.60, 22, 'bench');
+    this.makeLamp(1705, this.terrainY(1705), 0.58);
+    this.makeLamp(2500, this.terrainY(2500), 0.64);
 
-    // Lake composition. Lake is BEHIND the shore; Amber walks on the near bank.
-    const lakeX = 3440;
-    const lakeY = this.terrainY(lakeX) + 178;
+    // Lake: lower and behind the walkable path, so Amber reads as walking along the shore.
     const lake = this.add.graphics().setDepth(2);
-    lake.fillStyle(0x58b8bd, 0.60);
-    lake.fillEllipse(lakeX, lakeY, 960, 260);
+    const lakeX = 2170;
+    const lakeY = this.terrainY(lakeX) + 148;
+    lake.fillStyle(0x5dbfc5, 0.58);
+    lake.fillEllipse(lakeX, lakeY, 780, 230);
     lake.fillStyle(0xbdeee5, 0.18);
-    lake.fillEllipse(lakeX + 60, lakeY - 44, 620, 64);
+    lake.fillEllipse(lakeX + 80, lakeY - 36, 480, 58);
     lake.fillStyle(0xffffff, 0.10);
-    lake.fillEllipse(lakeX - 170, lakeY + 12, 310, 24);
+    lake.fillEllipse(lakeX - 110, lakeY + 5, 260, 22);
 
-    // Shore grass layer in front of water to make the path readable.
-    const shore = this.add.graphics().setDepth(8);
-    shore.fillStyle(0x2f6b3c, 0.86);
-    shore.beginPath();
-    shore.moveTo(2550, this.terrainY(2550) + 24);
-    for (let x = 2550; x <= 4300; x += 42) shore.lineTo(x, this.terrainY(x) + 22);
-    shore.lineTo(4300, this.terrainY(4300) + 120);
-    shore.lineTo(2550, this.terrainY(2550) + 150);
-    shore.closePath();
-    shore.fillPath();
-
-    for (let i = 0; i < 22; i++) {
-      const reedX = 2920 + i * 42;
-      this.add.line(reedX, this.terrainY(reedX) + 34, 0, 0, 0, -Phaser.Math.Between(38, 86), 0x8fb96e, 0.45).setDepth(13);
+    for (let i = 0; i < 18; i++) {
+      const reedX = 1840 + i * 34;
+      this.add.line(reedX, this.terrainY(reedX) + 34, 0, 0, 0, -Phaser.Math.Between(38, 85), 0x8fb96e, 0.55).setDepth(13);
     }
 
-    const frog = this.add.container(lakeX - 90, lakeY - 52).setDepth(18);
+    const frog = this.add.container(2130, lakeY - 50).setDepth(18);
     frog.add(this.add.circle(0, 0, 24, 0x78b959, 0.98));
     frog.add(this.add.circle(-8, -14, 7, 0xffffff, 0.95));
     frog.add(this.add.circle(8, -14, 7, 0xffffff, 0.95));
@@ -249,28 +239,20 @@ class LevelScene extends Phaser.Scene {
     frog.add(this.add.circle(8, -14, 3, 0x0b1524, 0.95));
     this.tweens.add({ targets: frog, y: frog.y - 8, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    // Tree + bench sit on the shore, not inside the lake.
-    this.addAssetImage('v82-bench', 3000, this.terrainY(3000) + 8, 0.58, 24, 'bench');
-    this.addAssetImage('v82-tree', 3380, this.terrainY(3380) + 10, 0.72, 15, 'tree');
-    this.makeLamp(2850, this.terrainY(2850), 0.54);
-    this.makeLamp(4150, this.terrainY(4150), 0.60);
-
-    this.drawFlowerMeadow(2950, 4380, 34, 20);
-
-    // Future continuation / side area preview.
-    this.makeFence(4680, 6200, 9);
-    this.drawFlowerMeadow(4780, 6200, 34, 19);
+    // A later rise keeps the slice expandable after the lake.
+    this.makeFence(2700, 3300, 6);
+    this.drawFlowerMeadow(2760, 3380, 20, 17);
     const pocket = this.add.graphics().setDepth(13);
-    pocket.fillStyle(0x214f31, 0.90);
-    pocket.fillRoundedRect(5550, this.terrainY(5550) + 48, 430, 110, 52);
+    pocket.fillStyle(0x214f31, 0.94);
+    pocket.fillRoundedRect(3220, this.terrainY(3220) + 54, 400, 104, 50);
     for (let i = 0; i < 13; i++) {
-      this.add.circle(5570 + i * 31, this.terrainY(5570) + 42 + Phaser.Math.Between(-7, 9), Phaser.Math.Between(20, 34), 0x2e6f3f, 0.86).setDepth(21);
+      this.add.circle(3240 + i * 29, this.terrainY(3220) + 44 + Phaser.Math.Between(-8, 10), Phaser.Math.Between(20, 34), 0x2e6f3f, 0.90).setDepth(21);
     }
-    this.addAssetImage('v82-blue-grapes', 5770, this.terrainY(5770) + 28, 0.62, 24, 'blueGrapes');
+    this.addAssetImage('v82-blue-grapes', 3430, this.terrainY(3430) + 26, 0.64, 24, 'blueGrapes');
 
-    // Foreground silhouettes: low and soft, to preserve gameplay readability.
-    for (let i = 0; i < 10; i++) {
-      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1580, 2020), Phaser.Math.Between(320, 650), Phaser.Math.Between(70, 140), 0x061617, 0.14).setScrollFactor(1.05).setDepth(80);
+    // Foreground depth; kept low so it does not hide the playable landmarks.
+    for (let i = 0; i < 7; i++) {
+      this.add.ellipse(Phaser.Math.Between(0, this.worldW), Phaser.Math.Between(1180, 1450), Phaser.Math.Between(260, 520), Phaser.Math.Between(60, 120), 0x061617, 0.16).setScrollFactor(1.05).setDepth(80);
     }
   }
 
@@ -381,7 +363,7 @@ class LevelScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    const startX = 760;
+    const startX = 560;
     const startY = this.terrainY(startX);
     this.player = this.add.container(startX, startY).setDepth(40);
     this.shadow = this.add.ellipse(0, -3, 58, 14, 0x061018, 0.24).setDepth(-1);
@@ -396,9 +378,9 @@ class LevelScene extends Phaser.Scene {
   }
 
   createCollectibles() {
-    this.fluff = this.addAssetImage('v82-moonfluff', 3380, this.terrainY(3380) - 360, 0.40, 46, 'moonfluff');
+    this.fluff = this.addAssetImage('v82-moonfluff', 2040, this.terrainY(2040) - 285, 0.40, 46, 'moonfluff');
     this.tweens.add({ targets: this.fluff, y: this.fluff.y - 12, scale: 0.55, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.finishZone = new Phaser.Geom.Rectangle(6200, this.terrainY(6200) - 160, 360, 250);
+    this.finishZone = new Phaser.Geom.Rectangle(3420, this.terrainY(3420) - 150, 300, 230);
   }
 
   createAmbientMotion() {
@@ -437,7 +419,7 @@ class LevelScene extends Phaser.Scene {
     if (dir !== 0) {
       this.facing = dir;
       this.player.setScale(dir, 1);
-      const walkBob = Math.sin(time * 0.018) * 1.2;
+      const walkBob = Math.sin(time * 0.018) * 2;
       this.playerBody.body.y = -45 + walkBob;
       this.playerBody.head.y = -103 + walkBob * 0.35;
     } else {
@@ -474,7 +456,7 @@ class LevelScene extends Phaser.Scene {
 
     // gentle rotation to match slope, not enough to look unstable
     const slope = Phaser.Math.Clamp(this.terrainSlope(this.player.x), -0.34, 0.34);
-    this.player.rotation = Phaser.Math.Linear(this.player.rotation, slope * 0.18, 0.08);
+    this.player.rotation = Phaser.Math.Linear(this.player.rotation, slope * 0.35, 0.09);
 
     this.checkCollection();
     this.updateCamera(false);
@@ -499,11 +481,11 @@ class LevelScene extends Phaser.Scene {
 
   updateCamera(force = false) {
     const cam = this.cameras.main;
-    // v8.4: restore the nicer v8 camera-feel: Amber remains a clear focal point
-    // and the camera starts travelling earlier instead of waiting until far right.
-    const lookAhead = Phaser.Math.Clamp(this.vx * 0.45, -130, 190);
-    const anchorX = this.visibleW * 0.35;
-    const anchorY = this.visibleH * 0.50;
+    // v8.5: keep the good v8.3 movement/zoom, but restore the nicer camera feel:
+    // camera starts following earlier horizontally and softly follows real height changes.
+    const lookAhead = Phaser.Math.Clamp(this.vx * 0.28, -95, 135);
+    const anchorX = this.visibleW * 0.30;
+    const anchorY = this.visibleH * 0.48;
     let targetX = this.player.x - anchorX + lookAhead;
     let targetY = this.player.y - anchorY;
     targetX = Phaser.Math.Clamp(targetX, 0, Math.max(0, this.worldW - this.visibleW));
@@ -512,8 +494,8 @@ class LevelScene extends Phaser.Scene {
       cam.scrollX = targetX;
       cam.scrollY = targetY;
     } else {
-      cam.scrollX = Phaser.Math.Linear(cam.scrollX, targetX, 0.092);
-      cam.scrollY = Phaser.Math.Linear(cam.scrollY, targetY, 0.060);
+      cam.scrollX = Phaser.Math.Linear(cam.scrollX, targetX, 0.078);
+      cam.scrollY = Phaser.Math.Linear(cam.scrollY, targetY, 0.052);
     }
   }
 }
